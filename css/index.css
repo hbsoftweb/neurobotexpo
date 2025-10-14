@@ -9,7 +9,6 @@
 }
 
 body {
-  /* font-family: Arial, Helvetica, sans-serif; */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: #000;
@@ -19,10 +18,49 @@ body {
   background-size: 130px 130px;
 }
 
+/* Extra utilities that complement index.css */
+.debug-block {
+  display: none;
+  margin-top: 16px;
+  padding: 12px;
+  border: 1px dashed #999;
+  border-radius: 8px;
+  background: #0a0a0a0d;
+}
+
+.debug-block pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.debug-block.is-hidden {
+  display: none !important;
+}
+
+.is-hidden {
+  display: none !important;
+}
+
+/* Small visual tweak so inline submit sits neatly */
+.submit-inline {
+  margin: 12px 0 0;
+}
+
+button.cross-cut-button {
+  /* background: none; */
+  /* border: 0; */
+  /* padding: 0; */
+  cursor: pointer;
+}
+
 .main {
-  /* background-color: #000000; */
+  /* was fixed: height: 100vh; which could cut off the bottom buttons */
+  min-height: 100vh;
+  height: auto;
   width: 100%;
-  height: 100vh;
   position: relative;
 }
 
@@ -37,13 +75,12 @@ body {
   justify-content: center;
   width: 100%;
   height: auto;
-
-  /* border: 1px solid blue; */
-  /* background-color: darkgray; */
 }
 
 .form-holder {
   width: 50vw;
+  /* give breathing room for the sticky action bar + fixed progress bar */
+  padding-bottom: 180px;
 }
 
 .form-holder form {
@@ -63,7 +100,6 @@ body {
 .stepper-input {
   width: 100%;
   padding: 10px 0;
-  /* margin: 20px 0; */
   background: none;
   color: #fff;
   border: none;
@@ -82,11 +118,11 @@ input[type="number"]::-webkit-outer-spin-button {
   margin: 0;
 }
 
+/* -------- Buttons -------- */
 .cross-cut-button {
   padding: 20px 40px;
   font-size: 16px;
   width: 222px;
-
   position: relative;
   display: inline-block;
   font-weight: 700;
@@ -98,15 +134,17 @@ input[type="number"]::-webkit-outer-spin-button {
   cursor: pointer;
   font-family: Orbitron, sans-serif;
   letter-spacing: 4px;
-  -webkit-clip-path: polygon(7% 0, 100% 0, 100% 67%, 91% 98%, 0 100%, 0 42%);
+  -webkit-clip-path: polygon(9% 0, 100% 0, 100% 68%, 91% 100%, 0 100%, 0 35%);
   clip-path: polygon(9% 0, 100% 0, 100% 68%, 91% 100%, 0 100%, 0 35%);
-  transition: background-color 0.3s ease;
+  transition: background-color 0.3s ease, opacity 0.2s ease;
+}
+.cross-cut-button[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
-/* ------------------------------------------------------------------------------ */
-
+/* -------- Arrow animations -------- */
 .arrows {
-  position: relative;
   position: absolute;
   top: 50%;
   left: 76%;
@@ -114,12 +152,10 @@ input[type="number"]::-webkit-outer-spin-button {
   height: 6px;
   transform: translate(-50%, -50%);
 }
-
 .arrows:before {
   transform: translate(6.6666666667px, 106.6666666667px) rotate(-45deg);
   animation: arrows 2s linear infinite;
 }
-
 .arrows:after,
 .arrows:before {
   content: "";
@@ -129,31 +165,26 @@ input[type="number"]::-webkit-outer-spin-button {
   border-left: 2.6666666667px solid rgba(0, 0, 0, 0.7);
   border-bottom: 2.6666666667px solid rgba(0, 0, 0, 0.7);
 }
-
 .arrows:after {
   transform: translate(53.3333333333px) rotate(-45deg);
   animation: arrows 2s linear -0.5s infinite;
 }
-
 @keyframes arrows {
   0% {
     border-left: 2.6666666667px solid transparent;
     border-bottom: 2.6666666667px solid transparent;
     transform: translate(-13.3333333333px, -13.3333333333px) rotate(-45deg);
   }
-
   10%,
   90% {
     border-left: 2.6666666667px solid transparent;
     border-bottom: 2.6666666667px solid transparent;
   }
-
   50% {
     border-left: 2.6666666667px solid rgba(0, 0, 0, 0.7);
     border-bottom: 2.6666666667px solid rgba(0, 0, 0, 0.7);
     transform: translate(-13.3333333333px) rotate(-45deg);
   }
-
   to {
     border-left: 2.6666666667px solid transparent;
     border-bottom: 2.6666666667px solid transparent;
@@ -162,21 +193,17 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 .arrowsup {
-  position: relative;
   position: absolute;
   top: 50%;
   left: 64%;
   width: 6px;
   height: 6px;
-  transform: translate(-50%, -50%);
-  transform: rotate(180deg);
+  transform: translate(-50%, -50%) rotate(180deg);
 }
-
 .arrowsup:before {
   transform: translate(6.6666666667px, 106.6666666667px) rotate(-45deg);
   animation: arrowsupside 2s linear infinite;
 }
-
 .arrowsup:after,
 .arrowsup:before {
   content: "";
@@ -186,56 +213,61 @@ input[type="number"]::-webkit-outer-spin-button {
   border-left: 2.6666666667px solid rgba(0, 0, 0, 0.7);
   border-bottom: 2.6666666667px solid rgba(0, 0, 0, 0.7);
 }
-
 .arrowsup:after {
   transform: translate(53.3333333333px) rotate(-45deg);
   animation: arrowsupside 2s linear -0.5s infinite;
 }
-
 @keyframes arrowsupside {
   0% {
     border-left: 2.6666666667px solid transparent;
     border-bottom: 2.6666666667px solid transparent;
     transform: translate(-13.3333333333px, -13.3333333333px) rotate(-45deg);
   }
-
   10%,
   90% {
     border-left: 2.6666666667px solid transparent;
     border-bottom: 2.6666666667px solid transparent;
   }
-
   50% {
     border-left: 2.6666666667px solid rgba(0, 0, 0, 0.7);
     border-bottom: 2.6666666667px solid rgba(0, 0, 0, 0.7);
     transform: translate(-13.3333333333px) rotate(-45deg);
   }
-
   to {
     border-left: 2.6666666667px solid transparent;
     border-bottom: 2.6666666667px solid transparent;
     transform: translate(-13.3333333333px, 10.3333333333px) rotate(-45deg);
   }
 }
-/* ------------------------------------------------------------------------------ */
 
+/* -------- Buttons holder (sticky) -------- */
 .button-holder {
   display: flex;
   justify-content: space-between;
+  gap: 12px;
+
+  /* Make it sticky and keep it above the fixed progress bar */
+  position: sticky;
+  bottom: 96px; /* sits above progress bar */
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  border-radius: 16px;
+  z-index: 20; /* higher than progress-holder */
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
 }
 
+/* -------- Progress (fixed bottom) -------- */
 .progress-holder {
-    width: 100%;
-    height: auto;
-    /* border: 1px solid red; */
-
-    position: fixed;
-    bottom: 0;
-
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 20px;
+  width: 100%;
+  height: auto;
+  position: fixed;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 20px;
+  z-index: 5; /* keep it below the sticky buttons */
 }
 
 .progress-bar {
@@ -243,40 +275,33 @@ input[type="number"]::-webkit-outer-spin-button {
   height: 10px;
   background: #dddddd;
 }
-
 .progress-fill {
   width: 50%;
   height: 100%;
   background: #05d9ff;
 }
-
 .progress-count {
   width: 100%;
-  height: auto;
   text-align: right;
   padding-right: 1%;
   font-family: Orbitron, sans-serif;
   letter-spacing: 4px;
 }
 
-/* ------------------------------------------------------------------------------ */
-
+/* -------- Radio / Checkbox tiles -------- */
 .checkbox-group {
   margin: 20px 0;
   display: flex;
   flex-wrap: wrap;
 }
-
 .radio-inputs {
   display: flex;
 }
-
 .radio-group {
   margin: 20px 0;
   display: flex;
   flex-direction: column;
 }
-
 .radio-group label {
   margin-right: 10px;
   font-size: 18px;
@@ -284,15 +309,12 @@ input[type="number"]::-webkit-outer-spin-button {
   font-family: Orbitron, sans-serif;
   letter-spacing: 4px;
 }
-
 .radio-group label input {
   margin-right: 15px;
 }
-
 .radio-btn-wrapper {
   margin: 10px 0;
 }
-
 .radio-inputs > * {
   margin: 6px;
 }
@@ -301,26 +323,21 @@ input[type="number"]::-webkit-outer-spin-button {
   border-color: #05d9ff;
   color: #05d9ff;
 }
-
 .radio-input:checked + .radio-tile:before {
   transform: scale(1);
   opacity: 1;
   background-color: #05d9ff;
   border-color: #05d9ff;
 }
-
 .radio-input:checked + .radio-tile .radio-icon svg {
   fill: #05d9ff;
 }
-
 .radio-input:checked + .radio-tile .radio-label {
   color: #05d9ff;
 }
-
 .radio-input:focus + .radio-tile {
   border-color: #05d9ff;
 }
-
 .radio-input:focus + .radio-tile:before {
   transform: scale(1);
   opacity: 1;
@@ -339,10 +356,9 @@ input[type="number"]::-webkit-outer-spin-button {
   transition: 0.15s ease;
   cursor: pointer;
   position: relative;
-  -webkit-clip-path: polygon(7% 0, 100% 0, 100% 67%, 91% 98%, 0 100%, 0 42%);
+  -webkit-clip-path: polygon(9% 0, 100% 0, 100% 68%, 91% 100%, 0 100%, 0 35%);
   clip-path: polygon(9% 0, 100% 0, 100% 68%, 91% 100%, 0 100%, 0 35%);
 }
-
 .radio-tile:before {
   content: "";
   position: absolute;
@@ -358,11 +374,9 @@ input[type="number"]::-webkit-outer-spin-button {
   transform: scale(0);
   transition: 0.25s ease;
 }
-
 .radio-tile:hover {
   border-color: #05d9ff;
 }
-
 .radio-tile:hover:before {
   transform: scale(1);
   opacity: 1;
@@ -373,7 +387,6 @@ input[type="number"]::-webkit-outer-spin-button {
   height: 2rem;
   fill: #494949;
 }
-
 .radio-label {
   color: #707070;
   transition: 0.375s ease;
@@ -404,6 +417,7 @@ input[type="number"]::-webkit-outer-spin-button {
   top: 2px;
 }
 
+/* Applications */
 .radio-tile-application {
   display: flex;
   flex-direction: column;
@@ -417,17 +431,15 @@ input[type="number"]::-webkit-outer-spin-button {
   transition: 0.15s ease;
   cursor: pointer;
   position: relative;
-  -webkit-clip-path: polygon(7% 0, 100% 0, 100% 67%, 91% 98%, 0 100%, 0 42%);
+  -webkit-clip-path: polygon(9% 0, 100% 0, 100% 67%, 91% 98%, 0 100%, 0 42%);
   clip-path: polygon(9% 0, 100% 0, 100% 68%, 91% 100%, 0 100%, 0 35%);
 }
-
 .checkbox-group-application {
   margin: 20px 0;
   display: flex;
   flex-wrap: wrap;
   width: 80%;
 }
-
 .radio-label-application {
   margin-right: 0;
   font-size: 14px;
@@ -439,7 +451,6 @@ input[type="number"]::-webkit-outer-spin-button {
   font-weight: 500;
   color: #000;
 }
-
 .radio-tile-application:before {
   content: "";
   position: absolute;
@@ -465,25 +476,21 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 .application-wrapper {
-    position: relative;
-    background-color: #000;
-    color: #fff;
-    /* z-index: 1; */
-    isolation: isolate;
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-    margin-top: 20px;
-    width: 100%;
-}   
-
-
+  position: relative;
+  background-color: #000;
+  color: #fff;
+  isolation: isolate;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  margin-top: 20px;
+  width: 100%;
+}
 .application-wrapper,
 .application-wrapper:before {
   -webkit-clip-path: polygon(7% 0, 100% 0, 100% 68%, 93% 100%, 0 100%, 0 35%);
   clip-path: polygon(7% 0, 100% 0, 100% 68%, 93% 100%, 0 100%, 0 35%);
 }
-
 .application-wrapper:before {
   content: "";
   position: absolute;
@@ -494,7 +501,6 @@ input[type="number"]::-webkit-outer-spin-button {
   background: #fff;
   z-index: -1;
 }
-
 .application-wrapper:after {
   content: "";
   position: absolute;
@@ -508,63 +514,10 @@ input[type="number"]::-webkit-outer-spin-button {
   z-index: -1;
 }
 
-.radio-tile-application {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 215px;
-  min-height: 50px;
-  border: 2px solid #b5bfd9;
-  background-color: #fff;
-  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
-  transition: 0.15s ease;
-  cursor: pointer;
-  position: relative;
-  -webkit-clip-path: polygon(7% 0, 100% 0, 100% 67%, 91% 98%, 0 100%, 0 42%);
-  clip-path: polygon(9% 0, 100% 0, 100% 68%, 91% 100%, 0 100%, 0 35%);
-}
-
-.checkbox-group-application {
-  margin: 20px 0;
-  display: flex;
-  flex-wrap: wrap;
-  width: 80%;
-}
-
-.radio-label-application {
-  margin-right: 0;
-  font-size: 14px;
-  font-family: Orbitron, sans-serif;
-  letter-spacing: 1px;
-  position: relative;
-  top: 1px;
-  padding: 0 20px;
-  font-weight: 500;
-  color: #000;
-}
-
-.radio-tile-application:before {
-  content: "";
-  position: absolute;
-  display: block;
-  width: 0.75rem;
-  height: 0.75rem;
-  border: 2px solid #b5bfd9;
-  background-color: #fff;
-  border-radius: 50%;
-  top: 0.35rem;
-  left: 0.65rem;
-  opacity: 0;
-  transform: scale(0);
-  transition: 0.25s ease;
-}
-
 .application-filter-wrapper ul {
   display: flex;
   flex-wrap: wrap;
 }
-
 .application-filter-wrapper ul li {
   list-style: none;
   margin-right: 10px;
@@ -577,11 +530,9 @@ input[type="number"]::-webkit-outer-spin-button {
   transition: all 0.4s ease-in-out;
   margin-bottom: 15px;
 }
-
 .application-filter-wrapper {
   margin-top: 30px;
 }
-
 .application-filter-wrapper ul li:hover,
 .industry-filter-wrapper ul li:hover {
   background-color: #05d9ff;
@@ -589,29 +540,34 @@ input[type="number"]::-webkit-outer-spin-button {
   border: 1px solid #000;
 }
 
-.cam-div{
+/* Camera/Selfie */
+.cam-div {
   display: flex;
   flex-direction: column;
   gap: 20px;
   align-items: flex-start;
 }
-
-.cam-holder{
+.cam-holder {
   width: 300px;
-  /* height: 300px; */
-  /* background: #05d9ff; */
 }
-
-.selfie-button{
+.selfie-button {
   width: auto;
 }
 
+/* Thanks */
 .thank-you-message {
-    color: #fff;
-    font-size: 2.5rem;
-    font-family: Orbitron,sans-serif;
-    letter-spacing: 4px;
-    margin-top: 30px;
-    text-align: center;
-    font-weight: 500;
+  color: #fff;
+  font-size: 2.5rem;
+  font-family: Orbitron, sans-serif;
+  letter-spacing: 4px;
+  margin-top: 30px;
+  text-align: center;
+  font-weight: 500;
+}
+
+/* Responsive tweak */
+@media (max-width: 1024px) {
+  .form-holder {
+    width: 86vw;
+  }
 }
