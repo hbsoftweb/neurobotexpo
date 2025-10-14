@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Welcome</title>
     <link rel="stylesheet" href="./css/index.css">
 </head>
 
@@ -198,8 +198,7 @@
                             <div class="application-wrapper">
                                 <div class="img-wpr-category">
                                     <img alt="Printer Image" loading="lazy" width="150" height="150" decoding="async"
-                                        data-nimg="1" class="img-wrapper-categpryone"
-                                        src="assets/images/Printer.webp"
+                                        data-nimg="1" class="img-wrapper-categpryone" src="assets/images/Printer.webp"
                                         style="color: transparent;">
                                 </div>
                                 <div class="checkbox-group-application">
@@ -254,8 +253,7 @@
                             <div class="application-wrapper">
                                 <div class="img-wpr-category">
                                     <img alt="Camera Image" loading="lazy" width="150" height="150" decoding="async"
-                                        data-nimg="1" class="img-wrapper-categpryone"
-                                        src="assets/images/Vision.webp"
+                                        data-nimg="1" class="img-wrapper-categpryone" src="assets/images/Vision.webp"
                                         style="color: transparent;">
                                 </div>
                                 <div class="checkbox-group-application">
@@ -329,8 +327,7 @@
                                 <div class="img-wpr-category">
                                     <img alt="Camera Image" loading="lazy" width="150" height="150" decoding="async"
                                         data-nimg="1" class="img-wrapper-categpryone"
-                                        src="assets/images/Microscope.webp"
-                                        style="color: transparent;">
+                                        src="assets/images/Microscope.webp" style="color: transparent;">
                                 </div>
                                 <div class="checkbox-group-application">
                                     <div class="radio-inputs">
@@ -391,16 +388,31 @@
                             </div>
                         </div>
                     </div>
+                    <div>
+                        <label class="label-input" for="name">Special Mention*</label>
+                        <input class="stepper-input" type="text" placeholder="Enter Special Mention">
+                    </div>
+                    <div class="cam-div">
+                        <label class="label-input" for="name">Capture Your Selfie*</label>
+                        <div>
+                            <div class="cam-holder"></div>
+                        </div>
+                        <div class="cross-cut-button selfie-button">Capture Selfie <div class="arrowsup"></div>
+                        </div>
+                    </div>
                     <div class="button-holder">
                         <div class="cross-cut-button">Prev <div class="arrowsup"></div>
                         </div>
                         <div class="cross-cut-button">Next <div class="arrows"></div>
                         </div>
                     </div>
+                    <div class="thank-you-message">
+                        <span>Thank you for visiting our stall, our sales team will get in touch with you soon.</span>
+                    </div>
                 </form>
             </div>
         </div>
-        <!-- <div class="progress-holder"><div class="progress-count"> 50% Complete </div><div class="progress-bar"><div class="progress-fill"></div></div></div> -->
+        <div class="progress-holder"><div class="progress-count"> 50% Complete </div><div class="progress-bar"><div class="progress-fill"></div></div></div>
     </div>
 </body>
 
