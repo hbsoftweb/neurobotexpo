@@ -8,17 +8,20 @@
   padding: 0;
 }
 
+* {
+  font-family: Orbitron;
+}
 body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #000;
+  background: #000;
   color: #fff;
   background-image: linear-gradient(#3333335c 1px, transparent 0),
     linear-gradient(90deg, #3333335c 1px, transparent 0);
   background-size: 130px 130px;
 }
 
-/* Extra utilities that complement index.css */
+/* Debug preview */
 .debug-block {
   display: none;
   margin-top: 16px;
@@ -27,7 +30,6 @@ body {
   border-radius: 8px;
   background: #0a0a0a0d;
 }
-
 .debug-block pre {
   white-space: pre-wrap;
   word-break: break-word;
@@ -35,35 +37,19 @@ body {
   font-size: 0.9rem;
   line-height: 1.4;
 }
-
 .debug-block.is-hidden {
   display: none !important;
 }
-
 .is-hidden {
   display: none !important;
 }
 
-/* Small visual tweak so inline submit sits neatly */
-.submit-inline {
-  margin: 12px 0 0;
-}
-
-button.cross-cut-button {
-  /* background: none; */
-  /* border: 0; */
-  /* padding: 0; */
-  cursor: pointer;
-}
-
 .main {
-  /* was fixed: height: 100vh; which could cut off the bottom buttons */
   min-height: 100vh;
   height: auto;
   width: 100%;
   position: relative;
 }
-
 .logo-wrapper {
   display: flex;
   justify-content: center;
@@ -76,17 +62,30 @@ button.cross-cut-button {
   width: 100%;
   height: auto;
 }
-
 .form-holder {
-  width: 50vw;
-  /* give breathing room for the sticky action bar + fixed progress bar */
+  width: 60vw;
   padding-bottom: 180px;
 }
+@media (max-width: 1024px) {
+  .form-holder {
+    width: 86vw;
+  }
+}
 
-.form-holder form {
+form {
   display: flex;
   flex-direction: column;
   gap: 40px;
+}
+
+/* Each step takes the stage */
+.form-step {
+  /* min-height: 55vh; */
+  display: none;
+  align-content: flex-start;
+}
+.form-step .label-input {
+  margin-bottom: 16px;
 }
 
 .label-input {
@@ -96,7 +95,6 @@ button.cross-cut-button {
   font-family: Orbitron, sans-serif;
   letter-spacing: 4px;
 }
-
 .stepper-input {
   width: 100%;
   padding: 10px 0;
@@ -109,16 +107,14 @@ button.cross-cut-button {
   font-family: Orbitron, sans-serif;
   letter-spacing: 4px;
 }
-
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
-  -moz-appearance: none;
   appearance: none;
   margin: 0;
 }
 
-/* -------- Buttons -------- */
+/* Buttons */
 .cross-cut-button {
   padding: 20px 40px;
   font-size: 16px;
@@ -143,7 +139,7 @@ input[type="number"]::-webkit-outer-spin-button {
   cursor: not-allowed;
 }
 
-/* -------- Arrow animations -------- */
+/* Arrow anims */
 .arrows {
   position: absolute;
   top: 50%;
@@ -153,7 +149,7 @@ input[type="number"]::-webkit-outer-spin-button {
   transform: translate(-50%, -50%);
 }
 .arrows:before {
-  transform: translate(6.6666666667px, 106.6666666667px) rotate(-45deg);
+  transform: translate(6.6667px, 106.6667px) rotate(-45deg);
   animation: arrows 2s linear infinite;
 }
 .arrows:after,
@@ -162,36 +158,35 @@ input[type="number"]::-webkit-outer-spin-button {
   position: absolute;
   width: 100%;
   height: 100%;
-  border-left: 2.6666666667px solid rgba(0, 0, 0, 0.7);
-  border-bottom: 2.6666666667px solid rgba(0, 0, 0, 0.7);
+  border-left: 2.6667px solid rgba(0, 0, 0, 0.7);
+  border-bottom: 2.6667px solid rgba(0, 0, 0, 0.7);
 }
 .arrows:after {
-  transform: translate(53.3333333333px) rotate(-45deg);
+  transform: translate(53.3333px) rotate(-45deg);
   animation: arrows 2s linear -0.5s infinite;
 }
 @keyframes arrows {
   0% {
-    border-left: 2.6666666667px solid transparent;
-    border-bottom: 2.6666666667px solid transparent;
-    transform: translate(-13.3333333333px, -13.3333333333px) rotate(-45deg);
+    border-left: 2.6667px solid transparent;
+    border-bottom: 2.6667px solid transparent;
+    transform: translate(-13.3333px, -13.3333px) rotate(-45deg);
   }
   10%,
   90% {
-    border-left: 2.6666666667px solid transparent;
-    border-bottom: 2.6666666667px solid transparent;
+    border-left: 2.6667px solid transparent;
+    border-bottom: 2.6667px solid transparent;
   }
   50% {
-    border-left: 2.6666666667px solid rgba(0, 0, 0, 0.7);
-    border-bottom: 2.6666666667px solid rgba(0, 0, 0, 0.7);
-    transform: translate(-13.3333333333px) rotate(-45deg);
+    border-left: 2.6667px solid rgba(0, 0, 0, 0.7);
+    border-bottom: 2.6667px solid rgba(0, 0, 0, 0.7);
+    transform: translate(-13.3333px) rotate(-45deg);
   }
-  to {
-    border-left: 2.6666666667px solid transparent;
-    border-bottom: 2.6666666667px solid transparent;
-    transform: translate(-13.3333333333px, 10.3333333333px) rotate(-45deg);
+  100% {
+    border-left: 2.6667px solid transparent;
+    border-bottom: 2.6667px solid transparent;
+    transform: translate(-13.3333px, 10.3333px) rotate(-45deg);
   }
 }
-
 .arrowsup {
   position: absolute;
   top: 50%;
@@ -201,7 +196,7 @@ input[type="number"]::-webkit-outer-spin-button {
   transform: translate(-50%, -50%) rotate(180deg);
 }
 .arrowsup:before {
-  transform: translate(6.6666666667px, 106.6666666667px) rotate(-45deg);
+  transform: translate(6.6667px, 106.6667px) rotate(-45deg);
   animation: arrowsupside 2s linear infinite;
 }
 .arrowsup:after,
@@ -210,73 +205,69 @@ input[type="number"]::-webkit-outer-spin-button {
   position: absolute;
   width: 100%;
   height: 100%;
-  border-left: 2.6666666667px solid rgba(0, 0, 0, 0.7);
-  border-bottom: 2.6666666667px solid rgba(0, 0, 0, 0.7);
+  border-left: 2.6667px solid rgba(0, 0, 0, 0.7);
+  border-bottom: 2.6667px solid rgba(0, 0, 0, 0.7);
 }
 .arrowsup:after {
-  transform: translate(53.3333333333px) rotate(-45deg);
+  transform: translate(53.3333px) rotate(-45deg);
   animation: arrowsupside 2s linear -0.5s infinite;
 }
 @keyframes arrowsupside {
   0% {
-    border-left: 2.6666666667px solid transparent;
-    border-bottom: 2.6666666667px solid transparent;
-    transform: translate(-13.3333333333px, -13.3333333333px) rotate(-45deg);
+    border-left: 2.6667px solid transparent;
+    border-bottom: 2.6667px solid transparent;
+    transform: translate(-13.3333px, -13.3333px) rotate(-45deg);
   }
   10%,
   90% {
-    border-left: 2.6666666667px solid transparent;
-    border-bottom: 2.6666666667px solid transparent;
+    border-left: 2.6667px solid transparent;
+    border-bottom: 2.6667px solid transparent;
   }
   50% {
-    border-left: 2.6666666667px solid rgba(0, 0, 0, 0.7);
-    border-bottom: 2.6666666667px solid rgba(0, 0, 0, 0.7);
-    transform: translate(-13.3333333333px) rotate(-45deg);
+    border-left: 2.6667px solid rgba(0, 0, 0, 0.7);
+    border-bottom: 2.6667px solid rgba(0, 0, 0, 0.7);
+    transform: translate(-13.3333px) rotate(-45deg);
   }
-  to {
-    border-left: 2.6666666667px solid transparent;
-    border-bottom: 2.6666666667px solid transparent;
-    transform: translate(-13.3333333333px, 10.3333333333px) rotate(-45deg);
+  100% {
+    border-left: 2.6667px solid transparent;
+    border-bottom: 2.6667px solid transparent;
+    transform: translate(-13.3333px, 10.3333px) rotate(-45deg);
   }
 }
 
-/* -------- Buttons holder (sticky) -------- */
+/* Sticky wizard buttons */
 .button-holder {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-
-  /* Make it sticky and keep it above the fixed progress bar */
   position: sticky;
-  bottom: 96px; /* sits above progress bar */
+  bottom: 96px;
   padding: 12px;
   background: rgba(0, 0, 0, 0.55);
   backdrop-filter: blur(8px);
   border-radius: 16px;
-  z-index: 20; /* higher than progress-holder */
+  z-index: 20;
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
 }
 
-/* -------- Progress (fixed bottom) -------- */
+/* Progress (fixed) */
 .progress-holder {
   width: 100%;
-  height: auto;
   position: fixed;
   bottom: 0;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 20px;
-  z-index: 5; /* keep it below the sticky buttons */
+  z-index: 5;
 }
-
 .progress-bar {
   width: 100%;
   height: 10px;
-  background: #dddddd;
+  background: #ddd;
 }
 .progress-fill {
-  width: 50%;
+  width: 0%;
   height: 100%;
   background: #05d9ff;
 }
@@ -288,7 +279,7 @@ input[type="number"]::-webkit-outer-spin-button {
   letter-spacing: 4px;
 }
 
-/* -------- Radio / Checkbox tiles -------- */
+/* Tiles */
 .checkbox-group {
   margin: 20px 0;
   display: flex;
@@ -297,52 +288,20 @@ input[type="number"]::-webkit-outer-spin-button {
 .radio-inputs {
   display: flex;
 }
-.radio-group {
-  margin: 20px 0;
-  display: flex;
-  flex-direction: column;
-}
-.radio-group label {
-  margin-right: 10px;
-  font-size: 18px;
-  display: flex;
-  font-family: Orbitron, sans-serif;
-  letter-spacing: 4px;
-}
-.radio-group label input {
-  margin-right: 15px;
-}
-.radio-btn-wrapper {
-  margin: 10px 0;
-}
 .radio-inputs > * {
   margin: 6px;
 }
 
-.radio-input:checked + .radio-tile {
-  border-color: #05d9ff;
-  color: #05d9ff;
+.radio-input {
+  clip: rect(0 0 0 0);
+  -webkit-clip-path: inset(100%);
+  clip-path: inset(100%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
 }
-.radio-input:checked + .radio-tile:before {
-  transform: scale(1);
-  opacity: 1;
-  background-color: #05d9ff;
-  border-color: #05d9ff;
-}
-.radio-input:checked + .radio-tile .radio-icon svg {
-  fill: #05d9ff;
-}
-.radio-input:checked + .radio-tile .radio-label {
-  color: #05d9ff;
-}
-.radio-input:focus + .radio-tile {
-  border-color: #05d9ff;
-}
-.radio-input:focus + .radio-tile:before {
-  transform: scale(1);
-  opacity: 1;
-}
-
 .radio-tile {
   display: flex;
   flex-direction: column;
@@ -351,7 +310,7 @@ input[type="number"]::-webkit-outer-spin-button {
   width: 220px;
   min-height: 80px;
   border: 2px solid #b5bfd9;
-  background-color: #fff;
+  background: #fff;
   box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
   transition: 0.15s ease;
   cursor: pointer;
@@ -366,7 +325,7 @@ input[type="number"]::-webkit-outer-spin-button {
   width: 0.75rem;
   height: 0.75rem;
   border: 2px solid #b5bfd9;
-  background-color: #fff;
+  background: #fff;
   border-radius: 50%;
   top: 0.35rem;
   left: 1.05rem;
@@ -382,42 +341,40 @@ input[type="number"]::-webkit-outer-spin-button {
   opacity: 1;
 }
 
-.radio-icon svg {
-  width: 2rem;
-  height: 2rem;
-  fill: #494949;
+.radio-input:checked + .radio-tile {
+  border-color: #05d9ff;
+  color: #05d9ff;
 }
+.radio-input:checked + .radio-tile:before {
+  transform: scale(1);
+  opacity: 1;
+  background: #05d9ff;
+  border-color: #05d9ff;
+}
+.radio-input:checked + .radio-tile .radio-label {
+  color: #05d9ff;
+}
+
 .radio-label {
-  color: #707070;
+  color: #000;
   transition: 0.375s ease;
   text-align: center;
-  font-size: 13px;
-  top: -6px;
-}
-
-.radio-input {
-  clip: rect(0 0 0 0);
-  -webkit-clip-path: inset(100%);
-  clip-path: inset(100%);
-  height: 1px;
-  overflow: hidden;
-  position: absolute;
-  white-space: nowrap;
-  width: 1px;
-}
-
-.radio-label {
-  margin-right: 10px;
   font-size: 14px;
   font-family: Orbitron, sans-serif;
   letter-spacing: 4px;
   font-weight: 500;
-  color: #000;
   position: relative;
   top: 2px;
 }
+.radio-icon-img {
+  width: 32px;
+  height: 32px;
+  font-weight: 700;
+  position: relative;
+  top: -5px;
+}
 
-/* Applications */
+/* Application tiles */
 .radio-tile-application {
   display: flex;
   flex-direction: column;
@@ -426,7 +383,7 @@ input[type="number"]::-webkit-outer-spin-button {
   width: 215px;
   min-height: 50px;
   border: 2px solid #b5bfd9;
-  background-color: #fff;
+  background: #fff;
   box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
   transition: 0.15s ease;
   cursor: pointer;
@@ -458,7 +415,7 @@ input[type="number"]::-webkit-outer-spin-button {
   width: 0.75rem;
   height: 0.75rem;
   border: 2px solid #b5bfd9;
-  background-color: #fff;
+  background: #fff;
   border-radius: 50%;
   top: 0.35rem;
   left: 0.65rem;
@@ -467,17 +424,9 @@ input[type="number"]::-webkit-outer-spin-button {
   transition: 0.25s ease;
 }
 
-.radio-icon-img {
-  width: 32px;
-  height: 32px;
-  font-weight: 700;
-  position: relative;
-  top: -5px;
-}
-
 .application-wrapper {
   position: relative;
-  background-color: #000;
+  background: #000;
   color: #fff;
   isolation: isolate;
   display: flex;
@@ -494,50 +443,18 @@ input[type="number"]::-webkit-outer-spin-button {
 .application-wrapper:before {
   content: "";
   position: absolute;
-  top: -1px;
-  left: -1px;
-  right: -1px;
-  bottom: -1px;
+  inset: -1px;
   background: #fff;
   z-index: -1;
 }
 .application-wrapper:after {
   content: "";
   position: absolute;
-  top: 2px;
-  left: 2px;
-  right: 2px;
-  bottom: 2px;
-  background-color: #000;
+  inset: 2px;
+  background: #000;
   -webkit-clip-path: polygon(7% 0, 100% 0, 100% 68%, 93% 100%, 0 100%, 0 35%);
   clip-path: polygon(7% 0, 100% 0, 100% 68%, 93% 100%, 0 100%, 0 35%);
   z-index: -1;
-}
-
-.application-filter-wrapper ul {
-  display: flex;
-  flex-wrap: wrap;
-}
-.application-filter-wrapper ul li {
-  list-style: none;
-  margin-right: 10px;
-  border: 1px solid #fff;
-  padding: 7px 25px;
-  border-radius: 20px;
-  font-family: Orbitron, sans-serif;
-  letter-spacing: 3px;
-  font-size: 14px;
-  transition: all 0.4s ease-in-out;
-  margin-bottom: 15px;
-}
-.application-filter-wrapper {
-  margin-top: 30px;
-}
-.application-filter-wrapper ul li:hover,
-.industry-filter-wrapper ul li:hover {
-  background-color: #05d9ff;
-  color: #000;
-  border: 1px solid #000;
 }
 
 /* Camera/Selfie */
@@ -563,11 +480,4 @@ input[type="number"]::-webkit-outer-spin-button {
   margin-top: 30px;
   text-align: center;
   font-weight: 500;
-}
-
-/* Responsive tweak */
-@media (max-width: 1024px) {
-  .form-holder {
-    width: 86vw;
-  }
 }
