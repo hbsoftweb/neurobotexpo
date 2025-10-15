@@ -201,6 +201,15 @@ $stmt->execute([
     ':ua' => $_SERVER['HTTP_USER_AGENT'] ?? '',
 ]);
 
+// ---------- Emails ----------
+require_once __DIR__ . '/mail.php';
+try {
+    // Reuse the $record you wrote to JSONL (it already contains everything)
+    sendSubmissionEmails($record);
+} catch (Throwable $e) {
+    error_log('sendSubmissionEmails failed: ' . $e->getMessage());
+}
+
 // ---------- Success ----------
 json_response(200, [
     'ok' => true,

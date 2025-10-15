@@ -15,3 +15,14 @@ const SELFIES_DIR = STORAGE_DIR . '/selfies';
 
 // CORS (relaxed for dev)
 const CORS_ALLOW_ORIGIN = '*';
+
+// --- SMTP (Gmail App Password) ---
+const SMTP_HOST = 'smtp.gmail.com';
+const SMTP_USER = 'jaymodihbsoftweb@gmail.com'; // must match From
+const SMTP_PASS = 'vzvcajuhmkdezuiu';
+const SMTP_PORT = 465; // 465 (SSL) or 587 (STARTTLS)
+
+const MAIL_FROM       = SMTP_USER;       // must equal SMTP_USER for Gmail
+const MAIL_FROM_NAME  = 'Neurobot Expo';
+const MAIL_ADMIN      = 'jaymodihbsoftweb@gmail.com'; // admin notification recipient
+
