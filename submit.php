@@ -102,15 +102,18 @@ $payload = [
 $errors = [];
 $v = $payload['visitor'];
 
-$v['name'] = trim($v['name']);
-$v['company_name'] = trim($v['company_name']);
-$v['contact_number'] = digits_only($v['contact_number']);
-$v['email'] = trim($v['email']);
-$v['designation'] = trim($v['designation']);
-$v['designation_other'] = trim($v['designation_other']);
-$v['special_mention'] = trim($v['special_mention']);
-$industries = is_array($v['industries']) ? $v['industries'] : [];
-$applications = is_array($v['applications']) ? $v['applications'] : [];
+$v = $payload['visitor'];
+$v['name']             = trim((string)$v['name']);
+$v['company_name']     = trim((string)$v['company_name']);
+$v['contact_number']   = digits_only((string)$v['contact_number']);
+$v['email']            = trim((string)$v['email']);
+$v['designation']      = trim((string)$v['designation']);
+$v['designation_other']= trim((string)($v['designation_other'] ?? ''));
+$v['industry_other']   = trim((string)($v['industry_other'] ?? ''));
+$v['special_mention']  = trim((string)$v['special_mention']);
+
+$industries  = is_array($v['industries'])  ? $v['industries']  : [];
+$applications= is_array($v['applications'])? $v['applications']: [];
 
 if ($v['name'] === '') $errors['name'] = 'Name is required.';
 if ($v['company_name'] === '') $errors['company_name'] = 'Company name is required.';
