@@ -26,3 +26,6 @@ const MAIL_FROM       = SMTP_USER;       // must equal SMTP_USER for Gmail
 const MAIL_FROM_NAME  = 'Neurobot Expo';
 const MAIL_ADMIN      = 'jaymodihbsoftweb@gmail.com'; // admin notification recipient
 
+// ---- Admin login config ----
+const ADMIN_EMAIL = 'admin@123.com';
+const ADMIN_PASSWORD_HASH = '$2y$10$c3cGYvbAV4vYF2RDSAksWuDauqs9F5ayMzDs.Syo7Fo.5CEjs.WdC';
