@@ -56,6 +56,11 @@ if (empty($_SESSION['csrf_token'])) {
     .invalid .invalid-hint {
       display: block
     }
+
+    .is-loading {
+      opacity: .8;
+      cursor: not-allowed;
+    }
   </style>
 </head>
 
@@ -369,6 +374,23 @@ if (empty($_SESSION['csrf_token'])) {
         setTimeout(() => toast.classList.remove('toast--show'), ms);
       };
 
+      // Switch the submit button into/out of a loading state
+      function setSubmitting(isOn) {
+        if (isOn) {
+          nextBtn.dataset.originalText = nextBtn.textContent;
+          nextBtn.textContent = 'Please wait…';
+          nextBtn.disabled = true;
+          prevBtn.disabled = true;
+          nextBtn.classList.add('is-loading');
+        } else {
+          nextBtn.textContent = nextBtn.dataset.originalText || 'SUBMIT';
+          nextBtn.disabled = false;
+          prevBtn.disabled = false;
+          nextBtn.classList.remove('is-loading');
+        }
+      }
+
+
       // Show only one step
       let current = 0;
       function renderStep() {
@@ -572,7 +594,7 @@ if (empty($_SESSION['csrf_token'])) {
 
         const payload = buildPayload();
         try {
-          nextBtn.disabled = true; prevBtn.disabled = true;
+          setSubmitting(true);
           const res = await fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': payload.csrf_token },
@@ -584,7 +606,10 @@ if (empty($_SESSION['csrf_token'])) {
             if (data.errors && typeof data.errors === 'object') {
               const firstKey = Object.keys(data.errors)[0]; if (firstKey) msg = data.errors[firstKey];
             }
-            showToast(msg, 'error'); enableForm(); nextBtn.disabled = false; prevBtn.disabled = false; return;
+            showToast(msg, 'error');
+            setSubmitting(false);
+            return;
+
           }
           // // Success → go to thank-you page
           // window.location.assign(THANKS_URL);
@@ -598,7 +623,7 @@ if (empty($_SESSION['csrf_token'])) {
           $('#debugPre').textContent = JSON.stringify(payload, null, 2);
           $('#debug').classList.remove('is-hidden');
           showToast('Server unreachable. Showing payload preview.', 'error', 4000);
-          nextBtn.disabled = false; prevBtn.disabled = false;
+          setSubmitting(false);
         }
       });
 
