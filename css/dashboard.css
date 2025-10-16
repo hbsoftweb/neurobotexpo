@@ -137,14 +137,23 @@
 
 .category-printer {
   color: #d8d88c;
+  background: #141414;
+  padding: 5px;
+  border-radius: 30px;
 }
 
 .category-microscope {
   color: #cc668f;
+  background: #141414;
+  padding: 5px;
+  border-radius: 30px;
 }
 
 .category-vision {
   color: #b2dcb2;
+  background: #141414;
+  padding: 5px;
+  border-radius: 30px;
 }
 
 .category-uncategorized {
@@ -1306,6 +1315,7 @@ a {
   display: flex;
   width: 100%;
   padding: 25px 20px;
+  gap: 20px;
   align-items: stretch;
   position: fixed;
   top: 0;
@@ -1473,18 +1483,19 @@ a {
 /* ------------------------------------------ */
 
 /* Collapse the content INSIDE the accordion row, not the <tr> itself */
-.inquiry-data__accordion > td {          /* remove cell padding so a closed row is invisible */
+.inquiry-data__accordion > td {
+  /* remove cell padding so a closed row is invisible */
   padding: 0;
   border-bottom: none;
 }
 
 .inquiry-data__accordion-content {
-  max-height: 0;          /* collapsed by default */
+  max-height: 0; /* collapsed by default */
   overflow: hidden;
   opacity: 0;
   transition: max-height 0.45s ease, opacity 0.3s ease;
-  background: #000;       /* keep dark bg */
-  padding: 0 10px;        /* no vertical padding while closed */
+  background: #000; /* keep dark bg */
+  padding: 0 10px; /* no vertical padding while closed */
 }
 
 /* when expanded, let it breathe */
@@ -1495,4 +1506,46 @@ a {
   opacity: 1;
   /* max-height is driven by JS to the real scrollHeight for smooth animation */
   padding: 10px;
+}
+
+/* Accordion: collapse inner content instead of the <tr> itself */
+.inquiry-data__accordion > td {
+  padding: 0;
+  border-bottom: none;
+}
+
+/* neutralise previous "hidden row" styles and let inner content control visibility */
+.inquiry-data__accordion {
+  height: auto;
+  opacity: 1;
+  visibility: visible;
+  padding: 0;
+  border-bottom: none;
+}
+
+.inquiry-data__accordion .inquiry-data__accordion-content {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.45s ease, opacity 0.3s ease;
+  background: #000;
+  padding: 0 10px; /* add vertical space only when expanded */
+}
+
+.inquiry-data__accordion.expanded > td {
+  border-bottom: 1px solid #fff;
+}
+.inquiry-data__accordion.expanded .inquiry-data__accordion-content {
+  opacity: 1;
+  padding: 10px;
+}
+
+.action-wrapper {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.btn-logout{
+  min-width: 180px;
 }

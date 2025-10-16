@@ -116,26 +116,48 @@ function api_fetch_all(array &$meta): array
 }
 
 // Heuristic → category badges from `applications`
+// ONE chip per category (Microscope / Vision / Printer). Only show raw product names if no category is detected.
 function badges_from_applications($apps): array
 {
-    $labels = [];
-    if (is_string($apps) && $apps !== '')
-        $apps = [$apps];
-    if (!is_array($apps))
-        $apps = [];
-    $txt = strtolower(implode(' | ', $apps));
+    if (!is_array($apps)) $apps = (array)$apps;
 
-    if (strpos($txt, 'microscope') !== false)
-        $labels[] = ['Microscope', 'category-microscope'];
-    if (strpos($txt, 'zebra') !== false || strpos($txt, 'vision') !== false || strpos($txt, 'profiler') !== false || strpos($txt, 'z-track') !== false)
-        $labels[] = ['Vision', 'category-vision'];
-    if (strpos($txt, 'printer') !== false)
-        $labels[] = ['Printer', 'category-printer'];
+    $found = [
+        'Microscope' => false,
+        'Vision'     => false,
+        'Printer'    => false,
+    ];
 
-    if (empty($labels) && !empty($apps)) {
-        foreach (array_slice($apps, 0, 2) as $a)
-            $labels[] = [trim((string) $a), 'category'];
+    foreach ($apps as $a) {
+        $t = strtolower((string)$a);
+
+        // Microscope family (covers common variants)
+        if (preg_match('/microscope|microscopy|stereo|sterio|auto\s*focus\s*microscope|3d\s*microscope|touch\s*screen\s*microscope/i', $t)) {
+            $found['Microscope'] = true;
+        }
+
+        // Vision family (Zebra devices, profiler, z-track, cameras, line scan, generic "vision")
+        if (preg_match('/\bzebra\b|vision|profiler|z[-\s]?track|camera|line\s*scan|fs\s*-\s*70|vs\s*-\s*40|bfs|pge|flir/i', $t)) {
+            $found['Vision'] = true;
+        }
+
+        // Printers (known model codes + generic)
+        if (preg_match('/printer|printing|\br10\b|\br20\b|\br60\b|\b1200e\b|\bb1040h\b/i', $t)) {
+            $found['Printer'] = true;
+        }
     }
+
+    $labels = [];
+    if ($found['Microscope']) $labels[] = ['Microscope', 'category-microscope'];
+    if ($found['Vision'])     $labels[] = ['Vision', 'category-vision'];
+    if ($found['Printer'])    $labels[] = ['Printer', 'category-printer'];
+
+    // If nothing matched any category, fall back to showing up to 2 raw items.
+    if (empty($labels) && !empty($apps)) {
+        foreach (array_slice($apps, 0, 2) as $a) {
+            $labels[] = [trim((string)$a), 'category'];
+        }
+    }
+
     return $labels;
 }
 
@@ -206,20 +228,9 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     <title>Dashboard</title>
     <link rel="stylesheet" href="css/dashboard.css">
     <style>
-        .muted {
-            opacity: .7;
-        }
-
-        .click {
-            cursor: pointer;
-        }
-
-        /* ensure accordion text shows on dark bg */
-        .inquiry-data__accordion {
-            background: #000;
-        }
-
-        /* (optional) if you want the inner content always visible when expanded, keep height auto after transition end */
+        .muted { opacity: .7; }
+        .click { cursor: pointer; }
+        .inquiry-data__accordion { background: #000; }
     </style>
 </head>
 
@@ -316,23 +327,20 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                                     <div class="inquiry-data__accordion-content">
                                         <div class="wrapper-left-expand">
                                             <div><img alt="User Selfie" class="inquiry-data__selfie-big"
-                                                    src="<?= h($selfie) ?>">
-                                            </div>
+                                                    src="<?= h($selfie) ?>"></div>
                                             <p class="profile-info"><?= h($name) ?></p>
                                             <p class="profile-info"><?= h($company) ?></p>
                                             <p class="profile-info"><?= h($desig) ?></p>
                                         </div>
                                         <div class="wrapper-right-expand" style="display:flex;flex-direction:column;gap:6px;">
                                             <p><b class="label-left-expand">Contact
-                                                    Number:</b>&nbsp;&nbsp;&nbsp;<?= h($phone) ?>
-                                            </p>
+                                                    Number:</b>&nbsp;&nbsp;&nbsp;<?= h($phone) ?></p>
                                             <p><b class="label-left-expand">Industry:</b>&nbsp;&nbsp;&nbsp;<?= h($inds) ?></p>
                                             <p><b
                                                     class="label-left-expand">Applications:</b>&nbsp;&nbsp;&nbsp;<?= h(industries_to_string($apps)) ?>
                                             </p>
                                             <p><b class="label-left-expand">Special
-                                                    Mention:</b>&nbsp;&nbsp;&nbsp;<?= h($notes) ?>
-                                            </p>
+                                                    Mention:</b>&nbsp;&nbsp;&nbsp;<?= h($notes) ?></p>
                                             <p><b
                                                     class="label-left-expand">Submitted:</b>&nbsp;&nbsp;&nbsp;<?= h($r['submitted_at'] ?? '—') ?>
                                             </p>
@@ -395,7 +403,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             const content = acc.querySelector('.inquiry-data__accordion-content');
             if (!content) return;
 
-            // Optional: close any other open accordion (one-at-a-time behaviour)
+            // Close any other open accordion (one-at-a-time)
             document.querySelectorAll('tr.inquiry-data__accordion.expanded').forEach(openAcc => {
                 if (openAcc !== acc) {
                     const c = openAcc.querySelector('.inquiry-data__accordion-content');
@@ -405,23 +413,21 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             });
 
             if (acc.classList.contains('expanded')) {
-                // collapse
                 content.style.maxHeight = '0px';
                 acc.classList.remove('expanded');
             } else {
-                // expand to natural height
                 acc.classList.add('expanded');
                 content.style.maxHeight = content.scrollHeight + 'px';
             }
         });
 
-        // Ensure all accordions start collapsed (in case of SSR styles or browser restore)
+        // Ensure all accordions start collapsed
         document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.inquiry-data__accordion .inquiry-data__accordion-content')
                 .forEach(c => { c.style.maxHeight = '0px'; });
         });
 
-        // Search (client-side filter on current page); collapse any open accordion for hidden rows
+        // Search (client-side filter) + collapse any open accordion for hidden rows
         const searchInput = document.getElementById('searchInput');
         if (searchInput) {
             searchInput.addEventListener('input', function () {
@@ -433,10 +439,9 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                     r.style.display = match ? '' : 'none';
                     const acc = r.nextElementSibling;
                     if (acc && acc.classList.contains('inquiry-data__accordion')) {
+                        const content = acc.querySelector('.inquiry-data__accordion-content');
                         if (!match && acc.classList.contains('expanded')) {
-                            // collapse visual state
-                            const content = acc.querySelector('.inquiry-data__accordion-content');
-                            if (content) acc.style.height = '0px';
+                            if (content) content.style.maxHeight = '0px'; // collapse
                             acc.classList.remove('expanded');
                         }
                         acc.style.display = match ? '' : 'none';
@@ -456,5 +461,4 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         }
     </script>
 </body>
-
 </html>
