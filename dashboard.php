@@ -272,8 +272,9 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 <input id="searchInput" class="input-search" placeholder="Search..." type="text" value="">
             </div>
 
-            <!-- NEW: Deep Filter button (using download icon placeholder) -->
-            <div id="filterBtn" class="export-icon-wrapper click" title="Open Filters">
+            <!-- Filter button with tiny badge -->
+            <div id="filterBtn" class="export-icon-wrapper click icon-with-badge" title="Open Filters">
+                <span id="filterBadge" class="badge" aria-hidden="true" style="display:none;"></span>
                 <img alt="Filter icon" loading="lazy" width="512" height="512" decoding="async" class="export-icon"
                     src="assets/images/filter.png" style="color: transparent;">
             </div>
@@ -291,7 +292,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             </div>
         </div>
 
-        <!-- NEW: Filters Modal -->
+        <!-- Filters Modal -->
         <div id="filterBackdrop" class="filters-backdrop" aria-hidden="true"></div>
         <div id="filterModal" class="filters-modal" role="dialog" aria-modal="true" aria-labelledby="filtersTitle" aria-hidden="true">
             <div class="filters-dialog">
@@ -546,6 +547,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         const filterClose = document.getElementById('filterClose');
         const filtersApply = document.getElementById('filtersApply');
         const filtersClear = document.getElementById('filtersClear');
+        const filterBadge = document.getElementById('filterBadge');
 
         function openFilters() {
             filterModal.setAttribute('aria-hidden', 'false');
@@ -581,15 +583,32 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             });
         });
 
+        // Badge updater (APPLIED count)
+        function updateBadge() {
+            const n = selectedTokens.size;
+            if (!filterBadge) return;
+            if (n > 0) {
+                filterBadge.textContent = String(n);
+                filterBadge.style.display = 'inline-block';
+                filterBadge.setAttribute('aria-hidden', 'false');
+            } else {
+                filterBadge.textContent = '';
+                filterBadge.style.display = 'none';
+                filterBadge.setAttribute('aria-hidden', 'true');
+            }
+        }
+
         // Apply & Clear buttons
         filtersApply.addEventListener('click', () => {
-            filterRows();
+            filterRows();     // actually filter the table
+            updateBadge();    // show how many filters are APPLIED
             closeFilters();
         });
         filtersClear.addEventListener('click', () => {
             selectedTokens.clear();
             document.querySelectorAll('#filterPanel .chip.selected').forEach(c => c.classList.remove('selected'));
             filterRows();
+            updateBadge();    // clears badge to 0/hidden
         });
 
         // ----- Export CSV (all pages) -----
@@ -601,6 +620,9 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 window.location.href = url.toString();
             });
         }
+
+        // Initial badge state
+        updateBadge();
     </script>
 </body>
 </html>
