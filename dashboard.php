@@ -116,37 +116,48 @@ function api_fetch_all(array &$meta): array
 }
 
 // ----- Category helpers -----
-function app_is_microscope(string $t): bool {
+function app_is_microscope(string $t): bool
+{
     return (bool) preg_match('/microscope|microscopy|stereo|sterio|auto\s*focus\s*microscope|3d\s*microscope|touch\s*screen\s*microscope/i', $t);
 }
-function app_is_vision(string $t): bool {
+function app_is_vision(string $t): bool
+{
     return (bool) preg_match('/\bzebra\b|vision|profiler|z[-\s]?track|camera|line\s*scan|fs\s*-\s*70|vs\s*-\s*40|bfs|pge|flir/i', $t);
 }
-function app_is_printer(string $t): bool {
+function app_is_printer(string $t): bool
+{
     return (bool) preg_match('/printer|printing|\br10\b|\br20\b|\br60\b|\b1200e\b|\bb1040h\b/i', $t);
 }
 
 // Heuristic → ONE chip per category (Microscope / Vision / Printer). Fallback to product names if no category.
 function badges_from_applications($apps): array
 {
-    if (!is_array($apps)) $apps = (array)$apps;
+    if (!is_array($apps))
+        $apps = (array) $apps;
 
-    $found = ['Microscope'=>false, 'Vision'=>false, 'Printer'=>false];
+    $found = ['Microscope' => false, 'Vision' => false, 'Printer' => false];
     foreach ($apps as $a) {
-        $t = (string)$a;
+        $t = (string) $a;
         $lc = strtolower($t);
-        if (app_is_microscope($lc)) $found['Microscope'] = true;
-        if (app_is_vision($lc))     $found['Vision'] = true;
-        if (app_is_printer($lc))    $found['Printer'] = true;
+        if (app_is_microscope($lc))
+            $found['Microscope'] = true;
+        if (app_is_vision($lc))
+            $found['Vision'] = true;
+        if (app_is_printer($lc))
+            $found['Printer'] = true;
     }
 
     $labels = [];
-    if ($found['Microscope']) $labels[] = ['Microscope', 'category-microscope'];
-    if ($found['Vision'])     $labels[] = ['Vision', 'category-vision'];
-    if ($found['Printer'])    $labels[] = ['Printer', 'category-printer'];
+    if ($found['Microscope'])
+        $labels[] = ['Microscope', 'category-microscope'];
+    if ($found['Vision'])
+        $labels[] = ['Vision', 'category-vision'];
+    if ($found['Printer'])
+        $labels[] = ['Printer', 'category-printer'];
 
     if (empty($labels) && !empty($apps)) {
-        foreach (array_slice($apps, 0, 2) as $a) $labels[] = [trim((string)$a), 'category'];
+        foreach (array_slice($apps, 0, 2) as $a)
+            $labels[] = [trim((string) $a), 'category'];
     }
     return $labels;
 }
@@ -166,8 +177,10 @@ function selfie_src(?string $p): string
 // Industries renderer
 function industries_to_string($v): string
 {
-    if (is_array($v)) return implode(', ', $v);
-    if (is_string($v) && $v !== '') return $v;
+    if (is_array($v))
+        return implode(', ', $v);
+    if (is_string($v) && $v !== '')
+        return $v;
     return '—';
 }
 
@@ -187,26 +200,32 @@ foreach ($items as $r) {
     // industries
     if (!empty($r['industries']) && is_array($r['industries'])) {
         foreach ($r['industries'] as $ind) {
-            $ind = trim((string)$ind);
-            if ($ind !== '') $chip_industries[$ind] = true;
+            $ind = trim((string) $ind);
+            if ($ind !== '')
+                $chip_industries[$ind] = true;
         }
     }
     // applications by category
     $apps = $r['applications'] ?? [];
-    if (!is_array($apps)) $apps = (array)$apps;
+    if (!is_array($apps))
+        $apps = (array) $apps;
     foreach ($apps as $a) {
-        $name = trim((string)$a);
-        if ($name === '') continue;
+        $name = trim((string) $a);
+        if ($name === '')
+            continue;
         $lc = strtolower($name);
-        if (app_is_printer($lc))    $chip_printers[$name] = true;
-        if (app_is_vision($lc))     $chip_visions[$name] = true;
-        if (app_is_microscope($lc)) $chip_microscopes[$name] = true;
+        if (app_is_printer($lc))
+            $chip_printers[$name] = true;
+        if (app_is_vision($lc))
+            $chip_visions[$name] = true;
+        if (app_is_microscope($lc))
+            $chip_microscopes[$name] = true;
     }
 }
-ksort($chip_industries, SORT_NATURAL|SORT_FLAG_CASE);
-ksort($chip_printers, SORT_NATURAL|SORT_FLAG_CASE);
-ksort($chip_visions, SORT_NATURAL|SORT_FLAG_CASE);
-ksort($chip_microscopes, SORT_NATURAL|SORT_FLAG_CASE);
+ksort($chip_industries, SORT_NATURAL | SORT_FLAG_CASE);
+ksort($chip_printers, SORT_NATURAL | SORT_FLAG_CASE);
+ksort($chip_visions, SORT_NATURAL | SORT_FLAG_CASE);
+ksort($chip_microscopes, SORT_NATURAL | SORT_FLAG_CASE);
 
 // ---------- CSV export ----------
 if (isset($_GET['export']) && $_GET['export'] === 'csv') {
@@ -246,12 +265,46 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
     <link rel="stylesheet" href="css/dashboard.css">
+
+    <!-- Minimal -->
+    <link rel="icon" href="favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+
+    <!-- Optional extras -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#0f172a">
+    <link rel="manifest" href="/site.webmanifest">
+    <meta name="theme-color" content="#0f172a">
+
+
     <style>
-        .muted { opacity: .7; }
-        .click { cursor: pointer; }
-        .inquiry-data__accordion { background: #000; }
-        .chip { list-style:none; display:inline-block; margin:6px 8px; padding:7px 18px; border:1px solid #fff; border-radius:20px; }
-        .chip.selected { background:#05d9ff; color:#000; border-color:#000; }
+        .muted {
+            opacity: .7;
+        }
+
+        .click {
+            cursor: pointer;
+        }
+
+        .inquiry-data__accordion {
+            background: #000;
+        }
+
+        .chip {
+            list-style: none;
+            display: inline-block;
+            margin: 6px 8px;
+            padding: 7px 18px;
+            border: 1px solid #fff;
+            border-radius: 20px;
+        }
+
+        .chip.selected {
+            background: #05d9ff;
+            color: #000;
+            border-color: #000;
+        }
     </style>
 </head>
 
@@ -267,7 +320,9 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             <div class="input-container">
                 <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512"
                     class="search-icon" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M505 442.7L405.3 343c-4.5-4.5-10.6-7-17-7H372c27.6-35.3 44-79.7 44-128C416 93.1 322.9 0 208 0S0 93.1 0 208s93.1 208 208 208c48.3 0 92.7-16.4 128-44v16.3c0 6.4 2.5 12.5 7 17l99.7 99.7c9.4 9.4 24.6 9.4 33.9 0l28.3-28.3c9.4-9.4 9.4-24.6.1-34zM208 336c-70.7 0-128-57.2-128-128 0-70.7 57.2-128 128-128 70.7 0 128 57.2 128 128 0 70.7-57.2 128-128 128z"></path>
+                    <path
+                        d="M505 442.7L405.3 343c-4.5-4.5-10.6-7-17-7H372c27.6-35.3 44-79.7 44-128C416 93.1 322.9 0 208 0S0 93.1 0 208s93.1 208 208 208c48.3 0 92.7-16.4 128-44v16.3c0 6.4 2.5 12.5 7 17l99.7 99.7c9.4 9.4 24.6 9.4 33.9 0l28.3-28.3c9.4-9.4 9.4-24.6.1-34zM208 336c-70.7 0-128-57.2-128-128 0-70.7 57.2-128 128-128 70.7 0 128 57.2 128 128 0 70.7-57.2 128-128 128z">
+                    </path>
                 </svg>
                 <input id="searchInput" class="input-search" placeholder="Search..." type="text" value="">
             </div>
@@ -294,7 +349,8 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
 
         <!-- Filters Modal -->
         <div id="filterBackdrop" class="filters-backdrop" aria-hidden="true"></div>
-        <div id="filterModal" class="filters-modal" role="dialog" aria-modal="true" aria-labelledby="filtersTitle" aria-hidden="true">
+        <div id="filterModal" class="filters-modal" role="dialog" aria-modal="true" aria-labelledby="filtersTitle"
+            aria-hidden="true">
             <div class="filters-dialog">
                 <div class="filters-header">
                     <h2 id="filtersTitle" class="filters-heading">Filters</h2>
@@ -306,12 +362,14 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                     <div class="industry-filter-wrapper">
                         <ul>
                             <?php foreach (array_keys($chip_industries) as $ind): ?>
-                                <li class="chip" data-type="industry" data-value="<?= h(strtolower($ind)) ?>"><?= h($ind) ?></li>
+                                <li class="chip" data-type="industry" data-value="<?= h(strtolower($ind)) ?>"><?= h($ind) ?>
+                                </li>
                             <?php endforeach; ?>
                         </ul>
                     </div>
 
-                    <div class="filters-title" style="margin-top:10px;border-top:1px solid #fff;padding-top:20px;">Printer</div>
+                    <div class="filters-title" style="margin-top:10px;border-top:1px solid #fff;padding-top:20px;">
+                        Printer</div>
                     <ul class="application-filter-wrapper">
                         <?php foreach (array_keys($chip_printers) as $n): ?>
                             <li class="chip" data-type="printer" data-value="<?= h(strtolower($n)) ?>"><?= h($n) ?></li>
@@ -368,27 +426,26 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                             $indsArr = $r['industries'] ?? [];
                             $inds = industries_to_string($indsArr);
                             $apps = $r['applications'] ?? [];
-                            if (!is_array($apps)) $apps = (array)$apps;
+                            if (!is_array($apps))
+                                $apps = (array) $apps;
                             $badges = badges_from_applications($apps);
                             $selfie = selfie_src($r['selfie_path'] ?? '');
                             $notes = $r['special_mention'] ?? '—';
                             $date = $r['created_at'] ?? ($r['submitted_at'] ?? '');
                             if ($date) {
                                 $ts = strtotime($date);
-                                if ($ts) $date = date('d M Y - h:i A', $ts);
+                                if ($ts)
+                                    $date = date('d M Y - h:i A', $ts);
                             }
                             // Build searchable text + data attributes
-                            $categories_text = implode(' ', array_map(fn($b)=>strtolower($b[0]??''), $badges));
+                            $categories_text = implode(' ', array_map(fn($b) => strtolower($b[0] ?? ''), $badges));
                             $apps_text = strtolower(implode(' | ', $apps));
-                            $inds_text = strtolower(implode(' | ', (array)$indsArr));
-                            $search_text = strtolower(trim($name.' '.$company.' '.$phone.' '.$desig.' '.$inds.' '.$categories_text));
+                            $inds_text = strtolower(implode(' | ', (array) $indsArr));
+                            $search_text = strtolower(trim($name . ' ' . $company . ' ' . $phone . ' ' . $desig . ' ' . $inds . ' ' . $categories_text));
                             ?>
                             <!-- Row -->
-                            <tr class="inquiry-data__row click"
-                                data-role="toggle"
-                                data-text="<?= h($search_text) ?>"
-                                data-industries="<?= h($inds_text) ?>"
-                                data-apps="<?= h($apps_text) ?>">
+                            <tr class="inquiry-data__row click" data-role="toggle" data-text="<?= h($search_text) ?>"
+                                data-industries="<?= h($inds_text) ?>" data-apps="<?= h($apps_text) ?>">
                                 <td><img alt="User Selfie" loading="lazy" width="201" height="201" decoding="async"
                                         class="inquiry-data__selfie" src="<?= h($selfie) ?>" style="color: transparent;"></td>
                                 <td><?= h($name) ?></td>
@@ -410,21 +467,34 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                                 <td colspan="7">
                                     <div class="inquiry-data__accordion-content">
                                         <div class="wrapper-left-expand">
-                                            <div><img alt="User Selfie" class="inquiry-data__selfie-big" src="<?= h($selfie) ?>"></div>
+                                            <div><img alt="User Selfie" class="inquiry-data__selfie-big"
+                                                    src="<?= h($selfie) ?>"></div>
                                             <p class="profile-info"><?= h($name) ?></p>
                                             <p class="profile-info"><?= h($company) ?></p>
                                             <p class="profile-info"><?= h($desig) ?></p>
                                         </div>
                                         <div class="wrapper-right-expand" style="display:flex;flex-direction:column;gap:6px;">
-                                            <p><b class="label-left-expand">Contact Number:</b>&nbsp;&nbsp;&nbsp;<?= h($phone) ?></p>
+                                            <p><b class="label-left-expand">Contact
+                                                    Number:</b>&nbsp;&nbsp;&nbsp;<?= h($phone) ?></p>
                                             <p><b class="label-left-expand">Industry:</b>&nbsp;&nbsp;&nbsp;<?= h($inds) ?></p>
-                                            <p><b class="label-left-expand">Applications:</b>&nbsp;&nbsp;&nbsp;<?= h(industries_to_string($apps)) ?></p>
-                                            <p><b class="label-left-expand">Special Mention:</b>&nbsp;&nbsp;&nbsp;<?= h($notes) ?></p>
-                                            <p><b class="label-left-expand">Submitted:</b>&nbsp;&nbsp;&nbsp;<?= h($r['submitted_at'] ?? '—') ?></p>
-                                            <p><b class="label-left-expand">Created:</b>&nbsp;&nbsp;&nbsp;<?= h($date ?: '—') ?></p>
-                                            <p><b class="label-left-expand">Event ID:</b>&nbsp;&nbsp;&nbsp;<?= h($r['event_id'] ?? '—') ?></p>
-                                            <p><b class="label-left-expand">Email:</b>&nbsp;&nbsp;&nbsp;<?= h($r['email'] ?? '—') ?></p>
-                                            <p><b class="label-left-expand">Source:</b>&nbsp;&nbsp;&nbsp;<?= h($r['source'] ?? '—') ?></p>
+                                            <p><b
+                                                    class="label-left-expand">Applications:</b>&nbsp;&nbsp;&nbsp;<?= h(industries_to_string($apps)) ?>
+                                            </p>
+                                            <p><b class="label-left-expand">Special
+                                                    Mention:</b>&nbsp;&nbsp;&nbsp;<?= h($notes) ?></p>
+                                            <p><b
+                                                    class="label-left-expand">Submitted:</b>&nbsp;&nbsp;&nbsp;<?= h($r['submitted_at'] ?? '—') ?>
+                                            </p>
+                                            <p><b class="label-left-expand">Created:</b>&nbsp;&nbsp;&nbsp;<?= h($date ?: '—') ?>
+                                            </p>
+                                            <p><b class="label-left-expand">Event
+                                                    ID:</b>&nbsp;&nbsp;&nbsp;<?= h($r['event_id'] ?? '—') ?></p>
+                                            <p><b
+                                                    class="label-left-expand">Email:</b>&nbsp;&nbsp;&nbsp;<?= h($r['email'] ?? '—') ?>
+                                            </p>
+                                            <p><b
+                                                    class="label-left-expand">Source:</b>&nbsp;&nbsp;&nbsp;<?= h($r['source'] ?? '—') ?>
+                                            </p>
                                         </div>
                                     </div>
                                 </td>
@@ -625,4 +695,5 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         updateBadge();
     </script>
 </body>
+
 </html>
