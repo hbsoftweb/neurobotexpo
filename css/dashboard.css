@@ -1471,3 +1471,28 @@ a {
 }
 
 /* ------------------------------------------ */
+
+/* Collapse the content INSIDE the accordion row, not the <tr> itself */
+.inquiry-data__accordion > td {          /* remove cell padding so a closed row is invisible */
+  padding: 0;
+  border-bottom: none;
+}
+
+.inquiry-data__accordion-content {
+  max-height: 0;          /* collapsed by default */
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.45s ease, opacity 0.3s ease;
+  background: #000;       /* keep dark bg */
+  padding: 0 10px;        /* no vertical padding while closed */
+}
+
+/* when expanded, let it breathe */
+.inquiry-data__accordion.expanded > td {
+  border-bottom: 1px solid #fff;
+}
+.inquiry-data__accordion.expanded .inquiry-data__accordion-content {
+  opacity: 1;
+  /* max-height is driven by JS to the real scrollHeight for smooth animation */
+  padding: 10px;
+}
