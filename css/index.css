@@ -21,6 +21,25 @@ body {
   background-size: 130px 130px;
 }
 
+.banner-main {
+    background-image: url(../assets/images/bannerwelcome.webp);
+    background-repeat: no-repeat;
+    height: 93vh;
+    background-position: 50%;
+    background-size: cover;
+    margin: 30px;
+    border-radius: 30px;
+    position: relative;
+    cursor: pointer;
+    transition: opacity 1s ease,transform 1s ease;
+}
+
+.banner-logo-wrapper {
+    position: absolute;
+    top: 40%;
+    left: 10%;
+}
+
 /* Debug preview */
 .debug-block {
   display: none;
