@@ -60,7 +60,7 @@ if (empty($_SESSION['csrf_token'])) {
         .invalid-hint {
             color: #ffb4b4;
             font-size: 12px;
-            margin-top: 6px;
+            margin-top: 10px;
             display: none
         }
 
@@ -114,7 +114,7 @@ if (empty($_SESSION['csrf_token'])) {
                         <input class="stepper-input" id="contact_number" name="contact_number" type="tel"
                             inputmode="numeric" placeholder="Enter Your Phone number" pattern="^[0-9]{7,15}$"
                             aria-describedby="phoneHelp" required>
-                        <small id="phoneHelp" style="display:block;opacity:.8">Digits only, 7–15 characters.</small>
+                        <small id="phoneHelp" style="display:block;opacity:.8;margin-top:10px">Digits only, 7–15 characters.</small>
                         <div class="invalid-hint">Enter a valid phone (digits only, 7–15).</div>
                     </div>
 
