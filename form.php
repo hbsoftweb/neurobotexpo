@@ -115,7 +115,8 @@ if (empty($_SESSION['csrf_token'])) {
                         <input class="stepper-input" id="contact_number" name="contact_number" type="tel"
                             inputmode="numeric" placeholder="Enter Your Phone number" pattern="^[0-9]{7,15}$"
                             aria-describedby="phoneHelp" required>
-                        <small id="phoneHelp" style="display:block;opacity:.8;margin-top:10px">Digits only, 7–15 characters.</small>
+                        <small id="phoneHelp" style="display:block;opacity:.8;margin-top:10px">Digits only, 7–15
+                            characters.</small>
                         <div class="invalid-hint">Enter a valid phone (digits only, 7–15).</div>
                     </div>
 
@@ -358,9 +359,9 @@ if (empty($_SESSION['csrf_token'])) {
                     <!-- Wizard controls (sticky) -->
                     <div class="button-holder" id="wizardButtons">
                         <button type="button" class="cross-cut-button" id="prevBtn">PREV <div class="arrowsup"></div>
-                            </button>
+                        </button>
                         <button type="button" class="cross-cut-button" id="nextBtn">NEXT <div class="arrows"></div>
-                            </button>
+                        </button>
                     </div>
 
                     <!-- Thanks -->
@@ -693,7 +694,7 @@ if (empty($_SESSION['csrf_token'])) {
                     try {
                         const cur = JSON.parse(sessionStorage.getItem('currentExhibition') || 'null');
                         if (cur && cur.code) eParam = (qs ? '&' : '?') + 'e=' + encodeURIComponent(cur.code);
-                    } catch {}
+                    } catch { }
                     window.location.assign(THANKS_URL + qs + eParam);
 
                 } catch (err) {
