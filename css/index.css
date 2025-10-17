@@ -11,7 +11,7 @@
 * {
   font-family: Orbitron;
 }
-body {
+/* body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background: #000;
@@ -19,6 +19,19 @@ body {
   background-image: linear-gradient(#3333335c 1px, transparent 0),
     linear-gradient(90deg, #3333335c 1px, transparent 0);
   background-size: 130px 130px;
+} */
+
+body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: #000;
+    color: #fff;
+    background-image: linear-gradient(#3333335c 1px, transparent 0),
+    linear-gradient(90deg, #3333335c 1px, transparent 0);
+    background-size: 130px 130px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
 }
 
 .banner-main {

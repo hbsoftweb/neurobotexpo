@@ -12,6 +12,16 @@ $api = $base . '/api';
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Select Exhibition</title>
     <link rel="stylesheet" href="./css/index.css">
+    <!-- Minimal -->
+    <link rel="icon" href="favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+
+    <!-- Optional extras -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#0f172a">
+    <link rel="manifest" href="/site.webmanifest">
+    <meta name="theme-color" content="#0f172a">
     <style>
         .card {
             max-width: 720px;
@@ -77,7 +87,7 @@ $api = $base . '/api';
             <button id="goBtn" class="cross-cut-button">Continue →</button>
         </div>
 
-        <details style="margin-top:16px;">
+        <details style="margin-top:16px; cursor: pointer;">
             <summary>Create new exhibition</summary>
             <div class="row" style="margin-top:10px;">
                 <input id="newExhName" class="stepper-input" placeholder="Exhibition name (e.g., ABC Expo 2025)">
@@ -85,6 +95,11 @@ $api = $base . '/api';
             </div>
             <small class="muted">A code will be auto-generated (e.g., ABC-EXPO-2025)</small>
         </details>
+    </div>
+    <div style="display: flex; justify-content: center;">
+        <a href="dashboard.php">
+            <button id="createBtn" class="cross-cut-button">Login as ADMIN?</button>
+        </a>
     </div>
 
     <script>

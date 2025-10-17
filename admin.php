@@ -112,6 +112,17 @@ if ($is_locked) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Admin Login</title>
     <link rel="stylesheet" href="css/admin.css">
+    
+    <!-- Minimal -->
+    <link rel="icon" href="favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+
+    <!-- Optional extras -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#0f172a">
+    <link rel="manifest" href="/site.webmanifest">
+    <meta name="theme-color" content="#0f172a">
 </head>
 
 <body>
@@ -127,7 +138,8 @@ if ($is_locked) {
 
                 <?php if (!empty($error)): ?>
                     <div class="toast" style="margin:8px 0;color:#b00;">
-                        <?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></div>
+                        <?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?>
+                    </div>
                 <?php endif; ?>
 
                 <form method="post" action="admin.php" autocomplete="off" novalidate>
@@ -142,11 +154,16 @@ if ($is_locked) {
                         <input placeholder="Enter password" required class="input-login" type="password"
                             name="password">
                     </div>
-                    <div>
+                    <div style="margin-bottom: 10px;">
                         <button type="submit" class="btn-login" <?php if ($is_locked)
                             echo 'disabled'; ?>>Login</button>
                     </div>
                 </form>
+                <div>
+                    <a href="index.php">
+                        <button class="btn-login">Go Home</button>
+                    </a>
+                </div>
 
                 <?php if ($is_locked): ?>
                     <p style="margin-top:10px;font-size:12px;opacity:.8;">Login is temporarily disabled due to multiple

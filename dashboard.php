@@ -1,5 +1,5 @@
 <?php
-// dashboard.php — bound to /api/submissions?page=&page_size=
+// dashboard.php — NO PAGINATION (loads full list, optional event filter)
 // Protected dashboard that fetches API data, renders table + accordion, supports CSV export & logout
 declare(strict_types=1);
 
@@ -57,14 +57,13 @@ if (!empty($_SESSION['logged_in_at']) && (time() - $_SESSION['logged_in_at'] > $
     $_SESSION['logged_in_at'] = time();
 }
 
-// ---------- API fetch (primary) ----------
+// ---------- API fetch (page helper, used by api_fetch_all) ----------
 function api_fetch_submissions(int $page, int $page_size, array &$meta): array
 {
     $url = base_url() . "/api/submissions?page={$page}&page_size={$page_size}";
     $ch = curl_init($url);
     $headers = ['Accept: application/json'];
-    if (defined('API_KEY') && API_KEY)
-        $headers[] = 'X-API-Key: ' . API_KEY;
+    if (defined('API_KEY') && API_KEY) $headers[] = 'X-API-Key: ' . API_KEY;
 
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
@@ -72,28 +71,26 @@ function api_fetch_submissions(int $page, int $page_size, array &$meta): array
         CURLOPT_HTTPHEADER => $headers,
     ]);
     $resp = curl_exec($ch);
-    $err = curl_error($ch);
+    $err  = curl_error($ch);
     $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
     $meta['last_url'] = $url;
-    $meta['http'] = $code;
-    $meta['err'] = $err ?: null;
+    $meta['http']     = $code;
+    $meta['err']      = $err ?: null;
 
-    if ($err || $code < 200 || $code >= 300 || !$resp)
-        return [];
+    if ($err || $code < 200 || $code >= 300 || !$resp) return [];
     $json = json_decode($resp, true);
-    if (!is_array($json) || empty($json['ok']))
-        return [];
+    if (!is_array($json) || empty($json['ok'])) return [];
 
-    $meta['page'] = (int) ($json['page'] ?? $page);
+    $meta['page']      = (int) ($json['page'] ?? $page);
     $meta['page_size'] = (int) ($json['page_size'] ?? $page_size);
-    $meta['total'] = (int) ($json['total'] ?? 0);
+    $meta['total']     = (int) ($json['total'] ?? 0);
 
     return $json['items'] ?? [];
 }
 
-// Pull ALL pages for CSV
+// Pull ALL pages for full table / CSV
 function api_fetch_all(array &$meta): array
 {
     $page = 1;
@@ -101,16 +98,13 @@ function api_fetch_all(array &$meta): array
     $all = [];
     do {
         $items = api_fetch_submissions($page, $page_size, $meta);
-        if (empty($items))
-            break;
+        if (empty($items)) break;
         $all = array_merge($all, $items);
         $got = count($items);
         $total = $meta['total'] ?? 0;
         $page++;
-        if ($got < $page_size)
-            break;
-        if ($total && count($all) >= $total)
-            break;
+        if ($got < $page_size) break;
+        if ($total && count($all) >= $total) break;
     } while (true);
     return $all;
 }
@@ -132,32 +126,24 @@ function app_is_printer(string $t): bool
 // Heuristic → ONE chip per category (Microscope / Vision / Printer). Fallback to product names if no category.
 function badges_from_applications($apps): array
 {
-    if (!is_array($apps))
-        $apps = (array) $apps;
+    if (!is_array($apps)) $apps = (array) $apps;
 
     $found = ['Microscope' => false, 'Vision' => false, 'Printer' => false];
     foreach ($apps as $a) {
         $t = (string) $a;
         $lc = strtolower($t);
-        if (app_is_microscope($lc))
-            $found['Microscope'] = true;
-        if (app_is_vision($lc))
-            $found['Vision'] = true;
-        if (app_is_printer($lc))
-            $found['Printer'] = true;
+        if (app_is_microscope($lc)) $found['Microscope'] = true;
+        if (app_is_vision($lc))     $found['Vision']     = true;
+        if (app_is_printer($lc))    $found['Printer']    = true;
     }
 
     $labels = [];
-    if ($found['Microscope'])
-        $labels[] = ['Microscope', 'category-microscope'];
-    if ($found['Vision'])
-        $labels[] = ['Vision', 'category-vision'];
-    if ($found['Printer'])
-        $labels[] = ['Printer', 'category-printer'];
+    if ($found['Microscope']) $labels[] = ['Microscope', 'category-microscope'];
+    if ($found['Vision'])     $labels[] = ['Vision', 'category-vision'];
+    if ($found['Printer'])    $labels[] = ['Printer', 'category-printer'];
 
     if (empty($labels) && !empty($apps)) {
-        foreach (array_slice($apps, 0, 2) as $a)
-            $labels[] = [trim((string) $a), 'category'];
+        foreach (array_slice($apps, 0, 2) as $a) $labels[] = [trim((string) $a), 'category'];
     }
     return $labels;
 }
@@ -167,8 +153,7 @@ function selfie_src(?string $p): string
 {
     $p = (string) $p;
     if ($p !== '') {
-        if (preg_match('#^https?://#', $p))
-            return $p;
+        if (preg_match('#^https?://#', $p)) return $p;
         return ltrim($p, '/');
     }
     return 'assets/images/scalaton.webp';
@@ -177,26 +162,31 @@ function selfie_src(?string $p): string
 // Industries renderer
 function industries_to_string($v): string
 {
-    if (is_array($v))
-        return implode(', ', $v);
-    if (is_string($v) && $v !== '')
-        return $v;
+    if (is_array($v))           return implode(', ', $v);
+    if (is_string($v) && $v!=='') return $v;
     return '—';
 }
 
-// ---------- Get data for UI ----------
+// ---------- Get data for UI (NO PAGINATION) ----------
 $meta = [];
-$ui_page = max(1, (int) ($_GET['page'] ?? 1));
-$ui_page_size = max(1, min(100, (int) ($_GET['page_size'] ?? 10)));
-$selected_exh = trim((string)($_GET['event_id'] ?? '')); // for preselecting filter
-$items = api_fetch_submissions($ui_page, $ui_page_size, $meta);
+$selected_exh = trim((string)($_GET['event_id'] ?? ''));
 
-// Build filter chip sources (unique lists) from current page data
-$chip_industries = [];
-$chip_printers = [];
-$chip_visions = [];
+// Pull ALL submissions from the API
+$items = api_fetch_all($meta);
+
+// If an exhibition (event_id) is preselected via query string, filter server-side now
+if ($selected_exh !== '') {
+    $items = array_values(array_filter($items, static function($row) use ($selected_exh) {
+        return isset($row['event_id']) && (string)$row['event_id'] === $selected_exh;
+    }));
+}
+
+// Build filter chip sources (unique lists) from the FULL result set
+$chip_industries  = [];
+$chip_printers    = [];
+$chip_visions     = [];
 $chip_microscopes = [];
-$chip_exhibitions = []; // NEW: event_id list from current page
+$chip_exhibitions = [];
 
 foreach ($items as $r) {
     // exhibitions (event_id)
@@ -207,35 +197,32 @@ foreach ($items as $r) {
     if (!empty($r['industries']) && is_array($r['industries'])) {
         foreach ($r['industries'] as $ind) {
             $ind = trim((string) $ind);
-            if ($ind !== '')
-                $chip_industries[$ind] = true;
+            if ($ind !== '') $chip_industries[$ind] = true;
         }
     }
+
     // applications by category
     $apps = $r['applications'] ?? [];
-    if (!is_array($apps))
-        $apps = (array) $apps;
+    if (!is_array($apps)) $apps = (array) $apps;
     foreach ($apps as $a) {
         $name = trim((string) $a);
-        if ($name === '')
-            continue;
+        if ($name === '') continue;
         $lc = strtolower($name);
-        if (app_is_printer($lc))
-            $chip_printers[$name] = true;
-        if (app_is_vision($lc))
-            $chip_visions[$name] = true;
-        if (app_is_microscope($lc))
-            $chip_microscopes[$name] = true;
+        if (app_is_printer($lc))    $chip_printers[$name]    = true;
+        if (app_is_vision($lc))     $chip_visions[$name]     = true;
+        if (app_is_microscope($lc)) $chip_microscopes[$name] = true;
     }
 }
-ksort($chip_industries, SORT_NATURAL | SORT_FLAG_CASE);
-ksort($chip_printers, SORT_NATURAL | SORT_FLAG_CASE);
-ksort($chip_visions, SORT_NATURAL | SORT_FLAG_CASE);
+
+ksort($chip_industries,  SORT_NATURAL | SORT_FLAG_CASE);
+ksort($chip_printers,    SORT_NATURAL | SORT_FLAG_CASE);
+ksort($chip_visions,     SORT_NATURAL | SORT_FLAG_CASE);
 ksort($chip_microscopes, SORT_NATURAL | SORT_FLAG_CASE);
 ksort($chip_exhibitions, SORT_NATURAL | SORT_FLAG_CASE);
 
-// ---------- CSV export ----------
+// ---------- CSV export (ALL) ----------
 if (isset($_GET['export']) && $_GET['export'] === 'csv') {
+    // fetch full again to ensure export is complete
     $all = api_fetch_all($meta);
     // Optional server-side filter by event_id for CSV
     $filter_event = trim((string)($_GET['event_id'] ?? ''));
@@ -274,7 +261,6 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -292,20 +278,11 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     <link rel="manifest" href="/site.webmanifest">
     <meta name="theme-color" content="#0f172a">
 
-
     <style>
-        *{
-            font-family: 'Orbitron';
-        }
-        .muted {
-            opacity: .7;
-        }
-        .click {
-            cursor: pointer;
-        }
-        .inquiry-data__accordion {
-            background: #000;
-        }
+        *{ font-family: 'Orbitron'; }
+        .muted { opacity: .7; }
+        .click { cursor: pointer; }
+        .inquiry-data__accordion { background: #000; }
         .chip {
             list-style: none;
             display: inline-block;
@@ -314,11 +291,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             border: 1px solid #fff;
             border-radius: 20px;
         }
-        .chip.selected {
-            background: #05d9ff;
-            color: #000;
-            border-color: #000;
-        }
+        .chip.selected { background: #05d9ff; color: #000; border-color: #000; }
         /* NEW: compact select */
         .exh-select {
             min-width: 220px;
@@ -329,13 +302,25 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             padding: 10px 12px;
             outline: none;
         }
-        .exh-select:focus {
-            border-color: #05d9ff;
-        }
+        .exh-select:focus { border-color: #05d9ff; }
         .header-right-tools {
             display: flex;
             align-items: stretch;
             gap: 10px;
+        }
+        /* Tiny red badge on filter icon */
+        .icon-with-badge { position: relative; }
+        .icon-with-badge .badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: #e11d48;
+            color: #fff;
+            font-size: 11px;
+            line-height: 1;
+            padding: 3px 6px;
+            border-radius: 999px;
+            border: 1px solid #111;
         }
     </style>
 </head>
@@ -346,27 +331,23 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         <div class="header-wrapper">
             <div class="header-logo-wrapper" style="display: flex; justify-content: stretch;">
                 <img alt="Header Logo" loading="lazy" width="942" height="150" decoding="async"
-                    src="assets/images/Neurobot-Logo.svg" style="color: transparent;">
+                     src="assets/images/Neurobot-Logo.svg" style="color: transparent;">
             </div>
 
             <div class="input-container">
                 <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512"
-                    class="search-icon" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg">
-                    <path
-                        d="M505 442.7L405.3 343c-4.5-4.5-10.6-7-17-7H372c27.6-35.3 44-79.7 44-128C416 93.1 322.9 0 208 0S0 93.1 0 208s93.1 208 208 208c48.3 0 92.7-16.4 128-44v16.3c0 6.4 2.5 12.5 7 17l99.7 99.7c9.4 9.4 24.6 9.4 33.9 0l28.3-28.3c9.4-9.4 9.4-24.6.1-34zM208 336c-70.7 0-128-57.2-128-128 0-70.7 57.2-128 128-128 70.7 0 128 57.2 128 128 0 70.7-57.2 128-128 128z">
-                    </path>
+                     class="search-icon" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M505 442.7L405.3 343c-4.5-4.5-10.6-7-17-7H372c27.6-35.3 44-79.7 44-128C416 93.1 322.9 0 208 0S0 93.1 0 208s93.1 208 208 208c48.3 0 92.7-16.4 128-44v16.3c0 6.4 2.5 12.5 7 17l99.7 99.7c9.4 9.4 24.6 9.4 33.9 0l28.3-28.3c9.4-9.4 9.4-24.6.1-34zM208 336c-70.7 0-128-57.2-128-128 0-70.7 57.2-128 128-128 70.7 0 128 57.2 128 128 0 70.7-57.2 128-128 128z"></path>
                 </svg>
                 <input id="searchInput" class="input-search" placeholder="Search..." type="text" value="">
             </div>
 
             <div class="header-right-tools">
-                <!-- NEW: Exhibition filter (Event ID) -->
+                <!-- Exhibition filter (Event ID) -->
                 <select id="exhSelect" class="exh-select" title="Filter by Exhibition (Event ID)">
                     <option value="">All Exhibitions</option>
                     <?php foreach (array_keys($chip_exhibitions) as $ev): ?>
-                        <option value="<?= h($ev) ?>" <?= $selected_exh === $ev ? 'selected' : '' ?>>
-                            <?= h($ev) ?>
-                        </option>
+                        <option value="<?= h($ev) ?>" <?= $selected_exh === $ev ? 'selected' : '' ?>><?= h($ev) ?></option>
                     <?php endforeach; ?>
                 </select>
 
@@ -374,12 +355,12 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 <div id="filterBtn" class="export-icon-wrapper click icon-with-badge" title="Open Filters">
                     <span id="filterBadge" class="badge" aria-hidden="true" style="display:none;"></span>
                     <img alt="Filter icon" loading="lazy" width="512" height="512" decoding="async" class="export-icon"
-                        src="assets/images/filter.png" style="color: transparent;">
+                         src="assets/images/filter.png" style="color: transparent;">
                 </div>
 
                 <div id="exportBtn" class="export-icon-wrapper click" title="Download CSV">
                     <img alt="Download icon" loading="lazy" width="512" height="512" decoding="async" class="export-icon"
-                        src="assets/images/download.svg" style="color: transparent;">
+                         src="assets/images/download.svg" style="color: transparent;">
                 </div>
 
                 <div class="button-wrapper-logout">
@@ -393,8 +374,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
 
         <!-- Filters Modal -->
         <div id="filterBackdrop" class="filters-backdrop" aria-hidden="true"></div>
-        <div id="filterModal" class="filters-modal" role="dialog" aria-modal="true" aria-labelledby="filtersTitle"
-            aria-hidden="true">
+        <div id="filterModal" class="filters-modal" role="dialog" aria-modal="true" aria-labelledby="filtersTitle" aria-hidden="true">
             <div class="filters-dialog">
                 <div class="filters-header">
                     <h2 id="filtersTitle" class="filters-heading">Filters</h2>
@@ -406,14 +386,12 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                     <div class="industry-filter-wrapper">
                         <ul>
                             <?php foreach (array_keys($chip_industries) as $ind): ?>
-                                <li class="chip" data-type="industry" data-value="<?= h(strtolower($ind)) ?>"><?= h($ind) ?>
-                                </li>
+                                <li class="chip" data-type="industry" data-value="<?= h(strtolower($ind)) ?>"><?= h($ind) ?></li>
                             <?php endforeach; ?>
                         </ul>
                     </div>
 
-                    <div class="filters-title" style="margin-top:10px;border-top:1px solid #fff;padding-top:20px;">
-                        Printer</div>
+                    <div class="filters-title" style="margin-top:10px;border-top:1px solid #fff;padding-top:20px;">Printer</div>
                     <ul class="application-filter-wrapper">
                         <?php foreach (array_keys($chip_printers) as $n): ?>
                             <li class="chip" data-type="printer" data-value="<?= h(strtolower($n)) ?>"><?= h($n) ?></li>
@@ -463,31 +441,30 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                         </tr>
                     <?php else: ?>
                         <?php foreach ($items as $r):
-                            $name = $r['name'] ?? '—';
+                            $name    = $r['name'] ?? '—';
                             $company = $r['company_name'] ?? '—';
-                            $phone = $r['contact_number'] ?? '—';
-                            $desig = $r['designation'] ?? '—';
+                            $phone   = $r['contact_number'] ?? '—';
+                            $desig   = $r['designation'] ?? '—';
                             $indsArr = $r['industries'] ?? [];
-                            $inds = industries_to_string($indsArr);
-                            $apps = $r['applications'] ?? [];
-                            if (!is_array($apps))
-                                $apps = (array) $apps;
-                            $badges = badges_from_applications($apps);
-                            $selfie = selfie_src($r['selfie_path'] ?? '');
-                            $notes = $r['special_mention'] ?? '—';
-                            $date = $r['created_at'] ?? ($r['submitted_at'] ?? '');
+                            $inds    = industries_to_string($indsArr);
+                            $apps    = $r['applications'] ?? [];
+                            if (!is_array($apps)) $apps = (array) $apps;
+                            $badges  = badges_from_applications($apps);
+                            $selfie  = selfie_src($r['selfie_path'] ?? '');
+                            $notes   = $r['special_mention'] ?? '—';
+                            $date    = $r['created_at'] ?? ($r['submitted_at'] ?? '');
                             if ($date) {
                                 $ts = strtotime($date);
-                                if ($ts)
-                                    $date = date('d M Y - h:i A', $ts);
+                                if ($ts) $date = date('d M Y - h:i A', $ts);
                             }
                             $event_id = trim((string)($r['event_id'] ?? ''));
+
                             // Build searchable text + data attributes
                             $categories_text = implode(' ', array_map(fn($b) => strtolower($b[0] ?? ''), $badges));
                             $apps_text = strtolower(implode(' | ', $apps));
                             $inds_text = strtolower(implode(' | ', (array) $indsArr));
                             $search_text = strtolower(trim($name . ' ' . $company . ' ' . $phone . ' ' . $desig . ' ' . $inds . ' ' . $categories_text . ' ' . $event_id));
-                            ?>
+                        ?>
                             <!-- Row -->
                             <tr class="inquiry-data__row click" data-role="toggle"
                                 data-text="<?= h($search_text) ?>"
@@ -495,18 +472,18 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                                 data-apps="<?= h($apps_text) ?>"
                                 data-event="<?= h($event_id) ?>">
                                 <td><img alt="User Selfie" loading="lazy" width="201" height="201" decoding="async"
-                                        class="inquiry-data__selfie" src="<?= h($selfie) ?>" style="color: transparent;"></td>
+                                         class="inquiry-data__selfie" src="<?= h($selfie) ?>" style="color: transparent;"></td>
                                 <td><?= h($name) ?></td>
                                 <td><?= h($company) ?></td>
                                 <td class="width240"><?= h($phone) ?></td>
                                 <td><?= h($desig) ?></td>
                                 <td class="width300"><?= h($inds) ?></td>
                                 <td>
-                                    <?php if (empty($badges)): ?>—
-                                    <?php else:
-                                        foreach ($badges as [$label, $cls]): ?>
+                                    <?php if (empty($badges)): ?>—<?php else: ?>
+                                        <?php foreach ($badges as [$label, $cls]): ?>
                                             <span class="category <?= h($cls) ?>"><?= h($label) ?></span>
-                                        <?php endforeach; endif; ?>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
 
@@ -515,34 +492,21 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                                 <td colspan="7">
                                     <div class="inquiry-data__accordion-content">
                                         <div class="wrapper-left-expand">
-                                            <div><img alt="User Selfie" class="inquiry-data__selfie-big"
-                                                    src="<?= h($selfie) ?>"></div>
+                                            <div><img alt="User Selfie" class="inquiry-data__selfie-big" src="<?= h($selfie) ?>"></div>
                                             <p class="profile-info"><?= h($name) ?></p>
                                             <p class="profile-info"><?= h($company) ?></p>
                                             <p class="profile-info"><?= h($desig) ?></p>
                                         </div>
                                         <div class="wrapper-right-expand" style="display:flex;flex-direction:column;gap:6px;">
-                                            <p><b class="label-left-expand">Contact
-                                                    Number:</b>&nbsp;&nbsp;&nbsp;<?= h($phone) ?></p>
+                                            <p><b class="label-left-expand">Contact Number:</b>&nbsp;&nbsp;&nbsp;<?= h($phone) ?></p>
                                             <p><b class="label-left-expand">Industry:</b>&nbsp;&nbsp;&nbsp;<?= h($inds) ?></p>
-                                            <p><b
-                                                    class="label-left-expand">Applications:</b>&nbsp;&nbsp;&nbsp;<?= h(industries_to_string($apps)) ?>
-                                            </p>
-                                            <p><b class="label-left-expand">Special
-                                                    Mention:</b>&nbsp;&nbsp;&nbsp;<?= h($notes) ?></p>
-                                            <p><b
-                                                    class="label-left-expand">Submitted:</b>&nbsp;&nbsp;&nbsp;<?= h($r['submitted_at'] ?? '—') ?>
-                                            </p>
-                                            <p><b class="label-left-expand">Created:</b>&nbsp;&nbsp;&nbsp;<?= h($date ?: '—') ?>
-                                            </p>
-                                            <p><b class="label-left-expand">Event
-                                                    ID:</b>&nbsp;&nbsp;&nbsp;<?= h($event_id ?: '—') ?></p>
-                                            <p><b
-                                                    class="label-left-expand">Email:</b>&nbsp;&nbsp;&nbsp;<?= h($r['email'] ?? '—') ?>
-                                            </p>
-                                            <p><b
-                                                    class="label-left-expand">Source:</b>&nbsp;&nbsp;&nbsp;<?= h($r['source'] ?? '—') ?>
-                                            </p>
+                                            <p><b class="label-left-expand">Applications:</b>&nbsp;&nbsp;&nbsp;<?= h(industries_to_string($apps)) ?></p>
+                                            <p><b class="label-left-expand">Special Mention:</b>&nbsp;&nbsp;&nbsp;<?= h($notes) ?></p>
+                                            <p><b class="label-left-expand">Submitted:</b>&nbsp;&nbsp;&nbsp;<?= h($r['submitted_at'] ?? '—') ?></p>
+                                            <p><b class="label-left-expand">Created:</b>&nbsp;&nbsp;&nbsp;<?= h($date ?: '—') ?></p>
+                                            <p><b class="label-left-expand">Event ID:</b>&nbsp;&nbsp;&nbsp;<?= h($event_id ?: '—') ?></p>
+                                            <p><b class="label-left-expand">Email:</b>&nbsp;&nbsp;&nbsp;<?= h($r['email'] ?? '—') ?></p>
+                                            <p><b class="label-left-expand">Source:</b>&nbsp;&nbsp;&nbsp;<?= h($r['source'] ?? '—') ?></p>
                                         </div>
                                     </div>
                                 </td>
@@ -552,32 +516,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 </tbody>
             </table>
 
-            <!-- Pager -->
-            <?php
-            $total = (int) ($meta['total'] ?? 0);
-            $page = (int) ($meta['page'] ?? $ui_page);
-            $page_size = (int) ($meta['page_size'] ?? $ui_page_size);
-            $pages = $page_size ? (int) ceil(($total ?: 0) / $page_size) : 1;
-            if ($pages > 1):
-                $makeLink = function ($p) use ($page_size, $selected_exh) {
-                    $url = new \stdClass();
-                    $url->q = $_GET ?? [];
-                    $url->q['page'] = $p;
-                    $url->q['page_size'] = $page_size;
-                    if ($selected_exh !== '') $url->q['event_id'] = $selected_exh; // keep filter in pager links
-                    return '?' . http_build_query($url->q);
-                };
-                ?>
-                <div class="pager">
-                    <?php if ($page > 1): ?>
-                        <a href="<?= h($makeLink($page - 1)) ?>">‹ Prev</a>
-                    <?php else: ?><span class="muted">‹ Prev</span><?php endif; ?>
-                    <span>Page <span class="active"><?= h((string) $page) ?></span> of <?= h((string) $pages) ?></span>
-                    <?php if ($page < $pages): ?>
-                        <a href="<?= h($makeLink($page + 1)) ?>">Next ›</a>
-                    <?php else: ?><span class="muted">Next ›</span><?php endif; ?>
-                </div>
-            <?php endif; ?>
+            <!-- No pager (intentionally removed) -->
         </div>
     </div>
 
@@ -660,7 +599,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 }
             });
 
-            // Keep event_id in URL (so pager/export keep it)
+            // Keep event_id in URL (so export keeps it)
             const url = new URL(window.location.href);
             if (eventFilter) url.searchParams.set('event_id', eventFilter);
             else url.searchParams.delete('event_id');
@@ -741,7 +680,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             updateBadge();    // clears badge to 0/hidden
         });
 
-        // ----- Export CSV (all pages) -----
+        // ----- Export CSV (all) -----
         const exportBtn = document.getElementById('exportBtn');
         if (exportBtn) {
             exportBtn.addEventListener('click', function () {
@@ -759,5 +698,4 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         filterRows();
     </script>
 </body>
-
 </html>
