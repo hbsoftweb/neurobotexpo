@@ -18,7 +18,7 @@ if (empty($_SESSION['csrf_token'])) {
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
 
-    <!-- Optional extras (you said you'll add a blank manifest file) -->
+    <!-- Optional extras -->
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#0f172a">
     <link rel="manifest" href="/site.webmanifest">
@@ -278,7 +278,7 @@ if (empty($_SESSION['csrf_token'])) {
             const form = $('#exhibition-form');
             const steps = $$('.form-step[data-step]');
             const prevBtn = $('#prevBtn');
-            const nextBtn = $('#nextBtn');
+            const nextBtn = $('#nextBtn']);
             const progressFill = $('#progressFill');
             const progressText = $('#progressText');
             const endpoint = form.getAttribute('data-endpoint') || 'submit.php';
@@ -484,6 +484,7 @@ if (empty($_SESSION['csrf_token'])) {
             toggleOtherRadio('designation', 'designation_other');
             toggleOtherCheckbox('industry[]', 'industry_other');
 
+            // NEXT / SUBMIT
             nextBtn.addEventListener('click', async () => {
                 const atLast = current === steps.length - 1;
                 if (!atLast) {
@@ -502,37 +503,54 @@ if (empty($_SESSION['csrf_token'])) {
                         headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': payload.csrf_token },
                         body: JSON.stringify(payload)
                     });
-                    const data = await res.json().catch(() => ({}));
-                    if (!res.ok || !data.ok) {
-                        let msg = data.error || 'Please check the form and try again.';
-                        if (data.errors && typeof data.errors === 'object') {
-                            const firstKey = Object.keys(data.errors)[0]; if (firstKey) msg = data.errors[firstKey];
+
+                    // Robust response handling: try JSON, else fall back to text
+                    let data = null;
+                    const ct = (res.headers.get('content-type') || '').toLowerCase();
+                    if (ct.includes('application/json')) {
+                        try { data = await res.json(); } catch (e) { console.warn('JSON parse failed:', e); }
+                    } else {
+                        const txt = await res.text();
+                        if (txt && txt.trim().startsWith('{')) {
+                            try { data = JSON.parse(txt); } catch (e) { console.warn('JSON-from-text parse failed:', e, txt); }
+                        } else {
+                            console.warn('Non-JSON response body:', txt);
                         }
-                        showToast(msg, 'error');
-                        setSubmitting(false);
+                    }
+
+                    // Treat any 2xx as success unless the body explicitly says ok:false
+                    if (res.ok && (!data || data.ok !== false)) {
+                        const THANKS_URL = 'thank-you.php';
+                        const qs = data?.id ? `?id=${encodeURIComponent(data.id)}` : '';
+                        let eParam = '';
+                        try {
+                            const cur = JSON.parse(sessionStorage.getItem('currentExhibition') || 'null');
+                            if (cur && cur.code) eParam = (qs ? '&' : '?') + 'e=' + encodeURIComponent(cur.code);
+                        } catch {}
+                        window.location.assign(THANKS_URL + qs + eParam);
                         return;
                     }
-                    const THANKS_URL = 'thank-you.php';
-                    const qs = data.id ? `?id=${encodeURIComponent(data.id)}` : '';
-                    let eParam = '';
-                    try {
-                        const cur = JSON.parse(sessionStorage.getItem('currentExhibition') || 'null');
-                        if (cur && cur.code) eParam = (qs ? '&' : '?') + 'e=' + encodeURIComponent(cur.code);
-                    } catch {}
-                    window.location.assign(THANKS_URL + qs + eParam);
+
+                    // Genuine error path
+                    let msg = (data && (data.error || (data.errors && Object.values(data.errors)[0]))) || 'Please check the form and try again.';
+                    showToast(msg, 'error');
+                    setSubmitting(false);
+
                 } catch (err) {
                     console.warn('Submit failed, showing payload for debugging:', err);
-                    $('#debugPre').textContent = JSON.stringify(payload, null, 2);
-                    $('#debug').classList.remove('is-hidden');
+                    document.getElementById('debugPre').textContent = JSON.stringify(payload, null, 2);
+                    document.getElementById('debug').classList.remove('is-hidden');
                     showToast('Server unreachable. Showing payload preview.', 'error', 4000);
                     setSubmitting(false);
                 }
             });
 
+            // PREV
             prevBtn.addEventListener('click', () => {
                 if (current > 0) { current--; renderStep(); }
             });
 
+            // Prevent accidental Enter submits
             form.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter' && e.target.tagName.toLowerCase() !== 'textarea') e.preventDefault();
             });
