@@ -14,5 +14,5 @@ RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
   Header always set Permissions-Policy "camera=(self), microphone=(), geolocation=()"
 
   # (Optional legacy) Some older browsers still read Feature-Policy
-  Header always set Feature-Policy "camera 'self'; microphone 'none'; geolocation 'none'"
+  # Header always set Feature-Policy "camera 'self'; microphone 'none'; geolocation 'none'"
 </IfModule>
