@@ -4,18 +4,9 @@ session_start();
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
-
-/**
- * Helpful security headers for camera access in production.
- * - Permissions-Policy allows camera for this origin (adjust if you must embed cross-origin).
- * - Feature-Policy is legacy but harmless to keep for older browsers.
- */
-@header('Permissions-Policy: camera=(self)');
-@header("Feature-Policy: camera 'self'");
 ?>
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -27,7 +18,7 @@ if (empty($_SESSION['csrf_token'])) {
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
 
-    <!-- Optional extras -->
+    <!-- Optional extras (you said you'll add a blank manifest file) -->
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#0f172a">
     <link rel="manifest" href="/site.webmanifest">
@@ -35,22 +26,9 @@ if (empty($_SESSION['csrf_token'])) {
 
     <!-- Toast (tiny, self-contained) -->
     <style>
-        .toast {
-            position: fixed;
-            left: 50%;
-            bottom: 24px;
-            transform: translateX(-50%);
-            padding: 12px 16px;
-            border-radius: 10px;
-            font: 14px/1.4 system-ui, Arial;
-            color: #fff;
-            background: #333;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, .4);
-            z-index: 9999;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity .25s
-        }
+        .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); padding: 12px 16px;
+                 border-radius: 10px; font: 14px/1.4 system-ui, Arial; color: #fff; background: #333;
+                 box-shadow: 0 8px 30px rgba(0,0,0,.4); z-index: 9999; opacity: 0; pointer-events: none; transition: opacity .25s }
         .toast--show { opacity: 1; pointer-events: auto }
         .toast--error { background: #c0392b }
         .toast--success { background: #2e7d32 }
@@ -72,7 +50,6 @@ if (empty($_SESSION['csrf_token'])) {
                 <form id="exhibition-form" action="submit.php" data-endpoint="submit.php" method="post" novalidate>
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
                     <input type="hidden" name="source" value="exhibition-form">
-                    <!-- event_id is filled by JS from sessionStorage exhibition -->
                     <input type="hidden" name="event_id" id="event_id" value="">
                     <input type="hidden" name="selfie_data" id="selfie_data" value="">
 
@@ -212,7 +189,6 @@ if (empty($_SESSION['csrf_token'])) {
                     <div class="form-step cam-div" data-step>
                         <label class="label-input" for="camera">Capture Your Selfie*</label>
                         <div class="cam-holder" id="cam-holder">
-                            <!-- IMPORTANT: muted + playsinline help iOS/Safari reliably start the stream -->
                             <video id="camera" autoplay muted playsinline style="max-width:100%;border-radius:12px;"></video>
                             <canvas id="snapshot" style="max-width:100%;border-radius:12px;display:none;"></canvas>
                         </div>
@@ -260,7 +236,6 @@ if (empty($_SESSION['csrf_token'])) {
     <script>
         // ===== Exhibition loop bootstrap (tab-scoped) =====
         (function () {
-            // Use ?e=CODE to (re)hydrate exhibition in this tab
             const params = new URLSearchParams(location.search);
             const queryCode = params.get('e');
 
@@ -276,18 +251,15 @@ if (empty($_SESSION['csrf_token'])) {
                 }
             }
 
-            // Require an active exhibition
             const cur = getCur();
             if (!cur || !cur.code) {
                 location.href = 'index.php';
                 return;
             }
 
-            // Inject event_id for submit
             const eidField = document.getElementById('event_id');
             if (eidField) eidField.value = cur.code;
 
-            // Sticky mini-banner to confirm current exhibition
             const banner = document.createElement('div');
             banner.style.cssText = 'position:sticky;top:0;z-index:999;background:#0b3558;color:#fff;padding:8px 12px;font:14px system-ui;';
             banner.innerHTML = `<strong>Exhibition:</strong> ${cur.name || cur.code}
@@ -334,7 +306,7 @@ if (empty($_SESSION['csrf_token'])) {
                 }
             }
 
-            // ---- Camera / Selfie (START ONLY WHEN NEEDED) ----
+            // ---- Camera / Selfie (start only when needed) ----
             const video = $('#camera');
             const canvas = $('#snapshot');
             const captureBtn = $('#captureBtn');
@@ -358,12 +330,10 @@ if (empty($_SESSION['csrf_token'])) {
                     canvas.style.display = 'none';
                     retakeBtn.style.display = 'none';
                     selfieData.value = '';
-                    // Safari/iOS: make sure playback starts
                     await video.play().catch(() => {});
                 } catch (err) {
                     console.error('Camera error:', err);
-                    const help = $('#selfieHelp');
-                    help.textContent = 'Camera blocked. Check site permissions, HTTPS, and Permissions-Policy. If embedded, the iframe must have allow="camera".';
+                    $('#selfieHelp').textContent = 'Camera blocked. Check site permissions and Permissions-Policy. (Chrome: lock icon → Site settings → Camera → Allow)';
                 }
             }
 
@@ -379,58 +349,45 @@ if (empty($_SESSION['csrf_token'])) {
                 video.style.display = 'block'; canvas.style.display = 'none'; retakeBtn.style.display = 'none'; selfieData.value = '';
             }
 
-            // Ensure camera starts when selfie step is visible
             function ensureCameraIfSelfieStepVisible() {
                 const selfieStep = document.querySelector('.form-step.cam-div');
                 const isVisible = selfieStep && selfieStep.style.display !== 'none';
                 if (isVisible) startCamera();
             }
 
-            captureBtn.addEventListener('click', async () => {
-                await startCamera();
-                captureSelfie();
-            });
+            captureBtn.addEventListener('click', async () => { await startCamera(); captureSelfie(); });
             captureBtn.addEventListener('keyup', e => { if (e.key === 'Enter' || e.key === ' ') { startCamera().then(captureSelfie); } });
             retakeBtn.addEventListener('click', retakeSelfie);
             retakeBtn.addEventListener('keyup', e => { if (e.key === 'Enter' || e.key === ' ') retakeSelfie(); });
 
-            // ---- Utilities ----
             const hasChecked = (sel) => $$(sel).some(el => el.checked);
-
             function setValidity(el, ok) {
                 if (!el) return;
                 el.setCustomValidity('');
                 el.closest('div')?.classList.toggle('invalid', !ok);
             }
 
-            // Validate just the currently visible step
             function validateCurrentStep() {
                 const stepEl = steps[current];
                 let valid = true;
 
-                // clear previous marks within this step
                 stepEl.querySelectorAll('.invalid').forEach(n => n.classList.remove('invalid'));
 
-                // Name
                 if (stepEl.contains($('#name'))) {
                     const el = $('#name'); const ok = !!el.value.trim(); if (!ok) valid = false; setValidity(el, ok);
                 }
-                // Company
                 if (stepEl.contains($('#company_name'))) {
                     const el = $('#company_name'); const ok = !!el.value.trim(); if (!ok) valid = false; setValidity(el, ok);
                 }
-                // Phone
                 if (stepEl.contains($('#contact_number'))) {
                     const el = $('#contact_number');
                     const ok = /^[0-9]{7,15}$/.test(el.value.trim());
                     if (!ok) { el.setCustomValidity('Digits only, 7–15 characters.'); valid = false; }
                     setValidity(el, ok);
                 }
-                // Email
                 if (stepEl.contains($('#email'))) {
                     const el = $('#email'); const ok = el.checkValidity(); if (!ok) valid = false; setValidity(el, ok);
                 }
-                // Designation (+ other)
                 if (stepEl.contains($('#designation-group'))) {
                     const desSel = document.querySelector('input[name="designation"]:checked');
                     if (!desSel) { valid = false; $('#designation-group').classList.add('invalid'); }
@@ -438,7 +395,6 @@ if (empty($_SESSION['csrf_token'])) {
                         const other = $('#designation_other'); if (!other.value.trim()) { valid = false; other.closest('div')?.classList.add('invalid'); }
                     }
                 }
-                // Industry (+ other)
                 if (stepEl.contains($('#industry-group'))) {
                     if (!hasChecked('input[name="industry[]"]')) { valid = false; $('#industry-group').classList.add('invalid'); }
                     const indOther = document.querySelector('input[name="industry[]"][value="Other"]');
@@ -446,15 +402,12 @@ if (empty($_SESSION['csrf_token'])) {
                         const other = $('#industry_other'); if (!other.value.trim()) { valid = false; other.closest('div')?.classList.add('invalid'); }
                     }
                 }
-                // Applications
                 if (stepEl.querySelector('#application-group-1')) {
                     if (!hasChecked('input[name="application[]"]')) { valid = false; $('#application-group-1')?.classList.add('invalid'); }
                 }
-                // Special mention
                 if (stepEl.contains($('#special_mention'))) {
                     const el = $('#special_mention'); const ok = !!el.value.trim(); if (!ok) valid = false; setValidity(el, ok);
                 }
-                // Selfie
                 if (stepEl.contains($('#cam-holder'))) {
                     if (!$('#selfie_data').value) { valid = false; showToast('Please capture your selfie before continuing.', 'error'); }
                 }
@@ -490,31 +443,20 @@ if (empty($_SESSION['csrf_token'])) {
                 };
             }
 
-            // Show only one step
             let current = 0;
             function renderStep() {
                 steps.forEach((el, i) => el.style.display = i === current ? 'block' : 'none');
-
-                // Buttons
                 prevBtn.style.visibility = current === 0 ? 'hidden' : 'visible';
-
                 const atLast = current === steps.length - 1;
                 nextBtn.textContent = atLast ? 'SUBMIT' : 'NEXT';
                 nextBtn.classList.toggle('is-submit', atLast);
-
-                // Progress
                 const pct = Math.round(((current + 1) / steps.length) * 100);
                 progressFill.style.width = pct + '%';
                 progressText.textContent = pct + '% Completed';
-
-                // Kick camera only when selfie step becomes visible
                 ensureCameraIfSelfieStepVisible();
-
-                // Scroll to top of form on step change
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
 
-            // ---- Toggle “Other” helpers ----
             function toggleOtherRadio(radioName, otherInputId) {
                 const selected = document.querySelector(`input[name="${radioName}"]:checked`);
                 const otherField = document.getElementById(otherInputId);
@@ -542,7 +484,6 @@ if (empty($_SESSION['csrf_token'])) {
             toggleOtherRadio('designation', 'designation_other');
             toggleOtherCheckbox('industry[]', 'industry_other');
 
-            // NEXT / SUBMIT
             nextBtn.addEventListener('click', async () => {
                 const atLast = current === steps.length - 1;
                 if (!atLast) {
@@ -550,7 +491,6 @@ if (empty($_SESSION['csrf_token'])) {
                     current++; renderStep(); return;
                 }
 
-                // Final submit
                 for (let i = 0; i < steps.length; i++) { current = i; if (!validateCurrentStep()) { renderStep(); return; } }
                 current = steps.length - 1; renderStep();
 
@@ -572,7 +512,6 @@ if (empty($_SESSION['csrf_token'])) {
                         setSubmitting(false);
                         return;
                     }
-                    // ✅ Success → redirect to thank-you page, preserving exhibition code
                     const THANKS_URL = 'thank-you.php';
                     const qs = data.id ? `?id=${encodeURIComponent(data.id)}` : '';
                     let eParam = '';
@@ -581,7 +520,6 @@ if (empty($_SESSION['csrf_token'])) {
                         if (cur && cur.code) eParam = (qs ? '&' : '?') + 'e=' + encodeURIComponent(cur.code);
                     } catch {}
                     window.location.assign(THANKS_URL + qs + eParam);
-
                 } catch (err) {
                     console.warn('Submit failed, showing payload for debugging:', err);
                     $('#debugPre').textContent = JSON.stringify(payload, null, 2);
@@ -591,23 +529,16 @@ if (empty($_SESSION['csrf_token'])) {
                 }
             });
 
-            // PREV
             prevBtn.addEventListener('click', () => {
                 if (current > 0) { current--; renderStep(); }
             });
 
-            // Prevent accidental Enter submits
             form.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter' && e.target.tagName.toLowerCase() !== 'textarea') e.preventDefault();
             });
 
-            // Start initial UI
             renderStep();
-
-            // If the tab regains focus while on selfie step, retry starting camera
-            document.addEventListener('visibilitychange', () => {
-                if (!document.hidden) ensureCameraIfSelfieStepVisible();
-            });
+            document.addEventListener('visibilitychange', () => { if (!document.hidden) ensureCameraIfSelfieStepVisible(); });
             window.addEventListener('focus', ensureCameraIfSelfieStepVisible);
         })();
     </script>
