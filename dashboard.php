@@ -188,6 +188,7 @@ function industries_to_string($v): string
 $meta = [];
 $ui_page = max(1, (int) ($_GET['page'] ?? 1));
 $ui_page_size = max(1, min(100, (int) ($_GET['page_size'] ?? 10)));
+$selected_exh = trim((string)($_GET['event_id'] ?? '')); // for preselecting filter
 $items = api_fetch_submissions($ui_page, $ui_page_size, $meta);
 
 // Build filter chip sources (unique lists) from current page data
@@ -195,8 +196,13 @@ $chip_industries = [];
 $chip_printers = [];
 $chip_visions = [];
 $chip_microscopes = [];
+$chip_exhibitions = []; // NEW: event_id list from current page
 
 foreach ($items as $r) {
+    // exhibitions (event_id)
+    $ev = trim((string)($r['event_id'] ?? ''));
+    if ($ev !== '') $chip_exhibitions[$ev] = true;
+
     // industries
     if (!empty($r['industries']) && is_array($r['industries'])) {
         foreach ($r['industries'] as $ind) {
@@ -226,10 +232,19 @@ ksort($chip_industries, SORT_NATURAL | SORT_FLAG_CASE);
 ksort($chip_printers, SORT_NATURAL | SORT_FLAG_CASE);
 ksort($chip_visions, SORT_NATURAL | SORT_FLAG_CASE);
 ksort($chip_microscopes, SORT_NATURAL | SORT_FLAG_CASE);
+ksort($chip_exhibitions, SORT_NATURAL | SORT_FLAG_CASE);
 
 // ---------- CSV export ----------
 if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     $all = api_fetch_all($meta);
+    // Optional server-side filter by event_id for CSV
+    $filter_event = trim((string)($_GET['event_id'] ?? ''));
+    if ($filter_event !== '') {
+        $all = array_values(array_filter($all, static function($row) use ($filter_event) {
+            return isset($row['event_id']) && (string)$row['event_id'] === $filter_event;
+        }));
+    }
+
     $filename = 'neurobot-expo-export-' . date('Ymd-His') . '.csv';
     header('Content-Type: text/csv; charset=utf-8');
     header('Content-Disposition: attachment; filename=' . $filename);
@@ -279,18 +294,18 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
 
 
     <style>
+        *{
+            font-family: 'Orbitron';
+        }
         .muted {
             opacity: .7;
         }
-
         .click {
             cursor: pointer;
         }
-
         .inquiry-data__accordion {
             background: #000;
         }
-
         .chip {
             list-style: none;
             display: inline-block;
@@ -299,11 +314,28 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             border: 1px solid #fff;
             border-radius: 20px;
         }
-
         .chip.selected {
             background: #05d9ff;
             color: #000;
             border-color: #000;
+        }
+        /* NEW: compact select */
+        .exh-select {
+            min-width: 220px;
+            border-radius: 10px;
+            border: 1px solid #2b2b2b;
+            background: #0c0c0c;
+            color: #fff;
+            padding: 10px 12px;
+            outline: none;
+        }
+        .exh-select:focus {
+            border-color: #05d9ff;
+        }
+        .header-right-tools {
+            display: flex;
+            align-items: stretch;
+            gap: 10px;
         }
     </style>
 </head>
@@ -327,23 +359,35 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 <input id="searchInput" class="input-search" placeholder="Search..." type="text" value="">
             </div>
 
-            <!-- Filter button with tiny badge -->
-            <div id="filterBtn" class="export-icon-wrapper click icon-with-badge" title="Open Filters">
-                <span id="filterBadge" class="badge" aria-hidden="true" style="display:none;"></span>
-                <img alt="Filter icon" loading="lazy" width="512" height="512" decoding="async" class="export-icon"
-                    src="assets/images/filter.png" style="color: transparent;">
-            </div>
+            <div class="header-right-tools">
+                <!-- NEW: Exhibition filter (Event ID) -->
+                <select id="exhSelect" class="exh-select" title="Filter by Exhibition (Event ID)">
+                    <option value="">All Exhibitions</option>
+                    <?php foreach (array_keys($chip_exhibitions) as $ev): ?>
+                        <option value="<?= h($ev) ?>" <?= $selected_exh === $ev ? 'selected' : '' ?>>
+                            <?= h($ev) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
 
-            <div id="exportBtn" class="export-icon-wrapper click" title="Download CSV">
-                <img alt="Download icon" loading="lazy" width="512" height="512" decoding="async" class="export-icon"
-                    src="assets/images/download.svg" style="color: transparent;">
-            </div>
+                <!-- Filter button with tiny badge -->
+                <div id="filterBtn" class="export-icon-wrapper click icon-with-badge" title="Open Filters">
+                    <span id="filterBadge" class="badge" aria-hidden="true" style="display:none;"></span>
+                    <img alt="Filter icon" loading="lazy" width="512" height="512" decoding="async" class="export-icon"
+                        src="assets/images/filter.png" style="color: transparent;">
+                </div>
 
-            <div class="button-wrapper-logout">
-                <form method="get" action="admin.php" style="height:100%;">
-                    <input type="hidden" name="action" value="logout">
-                    <button class="btn-logout" style="height: 100%">Log Out</button>
-                </form>
+                <div id="exportBtn" class="export-icon-wrapper click" title="Download CSV">
+                    <img alt="Download icon" loading="lazy" width="512" height="512" decoding="async" class="export-icon"
+                        src="assets/images/download.svg" style="color: transparent;">
+                </div>
+
+                <div class="button-wrapper-logout">
+                    <form method="get" action="admin.php" style="height:100%;">
+                        <input type="hidden" name="action" value="logout">
+                        <button class="btn-logout" style="height: 100%">Log Out</button>
+                    </form>
+                </div>
             </div>
         </div>
 
@@ -437,15 +481,19 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                                 if ($ts)
                                     $date = date('d M Y - h:i A', $ts);
                             }
+                            $event_id = trim((string)($r['event_id'] ?? ''));
                             // Build searchable text + data attributes
                             $categories_text = implode(' ', array_map(fn($b) => strtolower($b[0] ?? ''), $badges));
                             $apps_text = strtolower(implode(' | ', $apps));
                             $inds_text = strtolower(implode(' | ', (array) $indsArr));
-                            $search_text = strtolower(trim($name . ' ' . $company . ' ' . $phone . ' ' . $desig . ' ' . $inds . ' ' . $categories_text));
+                            $search_text = strtolower(trim($name . ' ' . $company . ' ' . $phone . ' ' . $desig . ' ' . $inds . ' ' . $categories_text . ' ' . $event_id));
                             ?>
                             <!-- Row -->
-                            <tr class="inquiry-data__row click" data-role="toggle" data-text="<?= h($search_text) ?>"
-                                data-industries="<?= h($inds_text) ?>" data-apps="<?= h($apps_text) ?>">
+                            <tr class="inquiry-data__row click" data-role="toggle"
+                                data-text="<?= h($search_text) ?>"
+                                data-industries="<?= h($inds_text) ?>"
+                                data-apps="<?= h($apps_text) ?>"
+                                data-event="<?= h($event_id) ?>">
                                 <td><img alt="User Selfie" loading="lazy" width="201" height="201" decoding="async"
                                         class="inquiry-data__selfie" src="<?= h($selfie) ?>" style="color: transparent;"></td>
                                 <td><?= h($name) ?></td>
@@ -488,7 +536,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                                             <p><b class="label-left-expand">Created:</b>&nbsp;&nbsp;&nbsp;<?= h($date ?: '—') ?>
                                             </p>
                                             <p><b class="label-left-expand">Event
-                                                    ID:</b>&nbsp;&nbsp;&nbsp;<?= h($r['event_id'] ?? '—') ?></p>
+                                                    ID:</b>&nbsp;&nbsp;&nbsp;<?= h($event_id ?: '—') ?></p>
                                             <p><b
                                                     class="label-left-expand">Email:</b>&nbsp;&nbsp;&nbsp;<?= h($r['email'] ?? '—') ?>
                                             </p>
@@ -511,11 +559,12 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             $page_size = (int) ($meta['page_size'] ?? $ui_page_size);
             $pages = $page_size ? (int) ceil(($total ?: 0) / $page_size) : 1;
             if ($pages > 1):
-                $makeLink = function ($p) use ($page_size) {
+                $makeLink = function ($p) use ($page_size, $selected_exh) {
                     $url = new \stdClass();
                     $url->q = $_GET ?? [];
                     $url->q['page'] = $p;
                     $url->q['page_size'] = $page_size;
+                    if ($selected_exh !== '') $url->q['event_id'] = $selected_exh; // keep filter in pager links
                     return '?' . http_build_query($url->q);
                 };
                 ?>
@@ -566,20 +615,26 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 .forEach(c => { c.style.maxHeight = '0px'; });
         });
 
-        // ----- Search + Union Filters -----
+        // ----- Search + Union Filters + Exhibition filter -----
         const searchInput = document.getElementById('searchInput');
+        const exhSelect = document.getElementById('exhSelect');
         const selectedTokens = new Set(); // stores lowercased values of selected chips across ALL groups
 
         function filterRows() {
             const q = (searchInput.value || '').toLowerCase().trim();
+            const eventFilter = (exhSelect && exhSelect.value) ? exhSelect.value.trim() : '';
             const rows = document.querySelectorAll('tr.inquiry-data__row');
 
             rows.forEach(r => {
-                const text = r.dataset.text || '';                 // name, company, contact, designation, industry, category
-                const inds = r.dataset.industries || '';           // industries tokens
-                const apps = r.dataset.apps || '';                 // applications tokens
+                const text = r.dataset.text || '';     // name, company, contact, designation, industry, category, event
+                const inds = r.dataset.industries || '';
+                const apps = r.dataset.apps || '';
+                const ev   = r.dataset.event || '';
 
                 const textMatch = q === '' ? true : text.includes(q);
+
+                // Exhibition filter (exact match on event_id)
+                const eventMatch = eventFilter === '' ? true : (ev === eventFilter);
 
                 // Union chip filtering
                 let chipsMatch = true;
@@ -590,7 +645,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                     }
                 }
 
-                const show = textMatch && chipsMatch;
+                const show = textMatch && eventMatch && chipsMatch;
                 r.style.display = show ? '' : 'none';
 
                 // also hide matched accordion row
@@ -604,11 +659,16 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                     acc.style.display = show ? '' : 'none';
                 }
             });
+
+            // Keep event_id in URL (so pager/export keep it)
+            const url = new URL(window.location.href);
+            if (eventFilter) url.searchParams.set('event_id', eventFilter);
+            else url.searchParams.delete('event_id');
+            window.history.replaceState({}, '', url);
         }
 
-        if (searchInput) {
-            searchInput.addEventListener('input', filterRows);
-        }
+        if (searchInput) searchInput.addEventListener('input', filterRows);
+        if (exhSelect) exhSelect.addEventListener('change', filterRows);
 
         // ----- Modal wiring -----
         const filterBtn = document.getElementById('filterBtn');
@@ -687,12 +747,16 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             exportBtn.addEventListener('click', function () {
                 const url = new URL(window.location.href);
                 url.searchParams.set('export', 'csv');
+                // include event filter if selected
+                const ev = (exhSelect && exhSelect.value) ? exhSelect.value.trim() : '';
+                if (ev) url.searchParams.set('event_id', ev);
                 window.location.href = url.toString();
             });
         }
 
-        // Initial badge state
+        // Initial badge state + initial filter application (if event_id present)
         updateBadge();
+        filterRows();
     </script>
 </body>
 

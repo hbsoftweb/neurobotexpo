@@ -1,5 +1,5 @@
 <?php
-// index.php
+// form.php
 session_start();
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -89,7 +89,8 @@ if (empty($_SESSION['csrf_token'])) {
                     <input type="hidden" name="csrf_token"
                         value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
                     <input type="hidden" name="source" value="exhibition-form">
-                    <input type="hidden" name="event_id" value="ENGIEXPO-2025">
+                    <!-- CHANGED: event_id now empty + has id for JS to fill -->
+                    <input type="hidden" name="event_id" id="event_id" value="">
                     <input type="hidden" name="selfie_data" id="selfie_data" value="">
 
                     <!-- STEP 1 -->
@@ -388,6 +389,47 @@ if (empty($_SESSION['csrf_token'])) {
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
     <script>
+        // ===== Exhibition loop bootstrap (tab-scoped) =====
+        (function () {
+            // Use ?e=CODE to (re)hydrate exhibition in this tab
+            const params = new URLSearchParams(location.search);
+            const queryCode = params.get('e');
+
+            function getCur() {
+                try { return JSON.parse(sessionStorage.getItem('currentExhibition') || 'null'); }
+                catch { return null; }
+            }
+
+            if (queryCode) {
+                const cur = getCur();
+                if (!cur || cur.code !== queryCode) {
+                    sessionStorage.setItem('currentExhibition', JSON.stringify({ code: queryCode, name: queryCode }));
+                }
+            }
+
+            // Require an active exhibition
+            const cur = getCur();
+            if (!cur || !cur.code) {
+                location.href = 'index.php';
+                return;
+            }
+
+            // Inject event_id for submit
+            const eidField = document.getElementById('event_id');
+            if (eidField) eidField.value = cur.code;
+
+            // Sticky mini-banner to confirm current exhibition
+            const banner = document.createElement('div');
+            banner.style.cssText = 'position:sticky;top:0;z-index:999;background:#0b3558;color:#fff;padding:8px 12px;font:14px system-ui;';
+            banner.innerHTML = `<strong>Exhibition:</strong> ${cur.name || cur.code}
+                <a href="index.php" style="color:#aef;margin-left:12px;text-decoration:underline;">Switch</a>`;
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', () => document.body.prepend(banner));
+            } else {
+                document.body.prepend(banner);
+            }
+        })();
+
         (function () {
             const $ = (s) => document.querySelector(s);
             const $$ = (s) => Array.from(document.querySelectorAll(s));
@@ -399,10 +441,6 @@ if (empty($_SESSION['csrf_token'])) {
             const progressFill = $('#progressFill');
             const progressText = $('#progressText');
             const endpoint = form.getAttribute('data-endpoint') || 'submit.php';
-            // const THANKS_URL = 'thank-you.php';
-            // const qs = data && data.id ? `?id=${encodeURIComponent(data.id)}` : '';
-            // window.location.assign(THANKS_URL + qs);
-
 
             // Toast
             const toast = $('#toast');
@@ -427,7 +465,6 @@ if (empty($_SESSION['csrf_token'])) {
                     nextBtn.classList.remove('is-loading');
                 }
             }
-
 
             // Show only one step
             let current = 0;
@@ -649,12 +686,15 @@ if (empty($_SESSION['csrf_token'])) {
                         return;
 
                     }
-                    // // Success → go to thank-you page
-                    // window.location.assign(THANKS_URL);
-                    // ✅ Success → redirect to thank-you page
+                    // ✅ Success → redirect to thank-you page, preserving exhibition code
                     const THANKS_URL = 'thank-you.php';
                     const qs = data.id ? `?id=${encodeURIComponent(data.id)}` : '';
-                    window.location.assign(THANKS_URL + qs);
+                    let eParam = '';
+                    try {
+                        const cur = JSON.parse(sessionStorage.getItem('currentExhibition') || 'null');
+                        if (cur && cur.code) eParam = (qs ? '&' : '?') + 'e=' + encodeURIComponent(cur.code);
+                    } catch {}
+                    window.location.assign(THANKS_URL + qs + eParam);
 
                 } catch (err) {
                     console.warn('Submit failed, showing payload for debugging:', err);

@@ -1,87 +1,63 @@
 <?php
-// thank-you.php
-
-// (Optional) hide notices in prod:
-ini_set('display_errors', '0');
-
-// Read the id from the redirect: thank-you.php?id=...
-$id = isset($_GET['id']) && $_GET['id'] !== ''
-    ? htmlspecialchars($_GET['id'], ENT_QUOTES, 'UTF-8')
-    : null;
+// thank-you.php — loops back to form for the same exhibition
+declare(strict_types=1);
 ?>
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Thank You</title>
-    <link rel="stylesheet" href="./css/index.css">
-
-    <!-- Minimal -->
-    <link rel="icon" href="favicon.ico" sizes="any">
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-
-    <!-- Optional extras -->
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-    <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#0f172a">
-    <link rel="manifest" href="/site.webmanifest">
-    <meta name="theme-color" content="#0f172a">
-
-    <style>
-        .thankyou-wrap {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 40px
-        }
-
-        .thankyou-card {
-            max-width: 880px;
-            background: rgb(4 4 4 / 55%);
-            backdrop-filter: blur(8px);
-            border-radius: 16px;
-            padding: 48px 36px;
-            box-shadow: 0 6px 24px rgba(0, 0, 0, .25);
-        }
-
-        .thankyou-title {
-            font-family: Orbitron, sans-serif;
-            letter-spacing: 4px;
-            font-size: 48px;
-            margin-bottom: 16px
-        }
-
-        .thankyou-text {
-            opacity: .9;
-            line-height: 1.6;
-            font-size: 18px;
-            margin-top: 8px
-        }
-
-        .back-btn {
-            margin-top: 28px;
-            display: inline-block
-        }
-    </style>
+  <meta charset="utf-8">
+  <title>Thank You</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="./css/index.css">
+  <style>
+    body { display:flex; align-items:center; justify-content:center; min-height:100vh; color:#fff; }
+    .card { width:min(720px, 92vw); background:#000; border:1px solid #1f2937; border-radius:16px; padding:28px; text-align:center; }
+    .muted{opacity:.8}
+    .logo{display:block;margin:0 auto 12px}
+    .actions{display:flex; gap:10px; justify-content:center; margin-top:18px}
+    .cross-cut-button{cursor:pointer; width: 100%;}
+  </style>
 </head>
-
 <body>
-    <div class="thankyou-wrap">
-        <div class="thankyou-card">
-            <img src="assets/images/Neurobot-Logo.svg" alt="Neurobot" width="260" style="margin-bottom:18px" />
-            <div class="thankyou-title">Thank you for your submission</div>
+  <div class="card">
+    <img class="logo" src="assets/images/Neurobot-Logo.svg" alt="Neurobot" width="220">
+    <h2>Thank you! 🎉</h2>
+    <p class="muted">Your submission has been received.</p>
 
-            <?php if ($id): ?>
-                <p class="thankyou-text">Reference ID: <strong><?php echo $id; ?></strong></p>
-            <?php endif; ?>
-
-            <a href="/" class="cross-cut-button back-btn">GO TO HOME <div class="arrows"></div></a>
-        </div>
+    <div class="actions">
+      <button id="againBtn" class="cross-cut-button">Fill Another Form</button>
+      <a href="index.php" class="cross-cut-button" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center">Change Exhibition</a>
     </div>
-</body>
 
+    <p class="muted" style="margin-top:12px;font-size:.95rem">Tip: keep this tab open to continue for the same exhibition.</p>
+  </div>
+
+  <script>
+    // Prefer sessionStorage (current tab) for the in-progress exhibition.
+    // Fallback to localStorage's lastExhibition if needed.
+    function getCurrentExhibition() {
+      try {
+        const s = sessionStorage.getItem('currentExhibition');
+        if (s) return JSON.parse(s);
+      } catch {}
+      try {
+        const l = localStorage.getItem('lastExhibition');
+        if (l) return JSON.parse(l);
+      } catch {}
+      return null;
+    }
+
+    document.getElementById('againBtn').addEventListener('click', () => {
+      const ex = getCurrentExhibition();
+      const code = ex && ex.code ? ex.code : new URLSearchParams(location.search).get('e');
+      if (code) {
+        // loop back straight into the form for the same exhibition
+        window.location.href = 'form.php?e=' + encodeURIComponent(code);
+      } else {
+        // no remembered exhibition — fall back to picker
+        window.location.href = 'index.php';
+      }
+    });
+  </script>
+</body>
 </html>
