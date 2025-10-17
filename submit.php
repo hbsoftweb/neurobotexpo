@@ -7,7 +7,11 @@ ini_set('display_errors', '1');
 error_reporting(E_ALL);
 
 // ---------- Basic CORS (relax during dev; tighten for prod) ----------
-header('Access-Control-Allow-Origin: *');
+require_once __DIR__ . '/api/config.php';
+// header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Origin: ' . CORS_ALLOW_ORIGIN);
+header('Vary: Origin');
+
 header('Access-Control-Allow-Methods: POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token');
 header('Content-Type: application/json; charset=utf-8');
@@ -18,17 +22,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 // ---------- Helpers ----------
-function json_response(int $status, array $data): void {
+function json_response(int $status, array $data): void
+{
     http_response_code($status);
     echo json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     exit;
 }
 
-function ensure_dir(string $path): void {
-    if (!is_dir($path)) @mkdir($path, 0775, true);
+function ensure_dir(string $path): void
+{
+    if (!is_dir($path))
+        @mkdir($path, 0775, true);
 }
 
-function data_url_to_png(string $dataUrl): string {
+function data_url_to_png(string $dataUrl): string
+{
     if (!str_starts_with($dataUrl, 'data:image/')) {
         throw new RuntimeException('Invalid selfie data URL.');
     }
@@ -43,12 +51,14 @@ function data_url_to_png(string $dataUrl): string {
     return $raw;
 }
 
-function digits_only(string $s): string {
+function digits_only(string $s): string
+{
     return preg_replace('/\D+/', '', $s) ?? '';
 }
 
-function ip_to_bin(?string $ip): ?string {
-    $b = @inet_pton((string)$ip);
+function ip_to_bin(?string $ip): ?string
+{
+    $b = @inet_pton((string) $ip);
     return $b === false ? null : $b;
 }
 
@@ -64,7 +74,8 @@ $body = [];
 
 if (stripos($ctype, 'application/json') !== false && $raw !== '') {
     $body = json_decode($raw, true);
-    if (!is_array($body)) json_response(400, ['ok' => false, 'error' => 'Invalid JSON body.']);
+    if (!is_array($body))
+        json_response(400, ['ok' => false, 'error' => 'Invalid JSON body.']);
 } else {
     $body = $_POST;
     if (isset($body['selfie_data']) && !isset($body['selfie']['data_url'])) {
@@ -103,41 +114,49 @@ $errors = [];
 $v = $payload['visitor'];
 
 $v = $payload['visitor'];
-$v['name']             = trim((string)$v['name']);
-$v['company_name']     = trim((string)$v['company_name']);
-$v['contact_number']   = digits_only((string)$v['contact_number']);
-$v['email']            = trim((string)$v['email']);
-$v['designation']      = trim((string)$v['designation']);
-$v['designation_other']= trim((string)($v['designation_other'] ?? ''));
-$v['industry_other']   = trim((string)($v['industry_other'] ?? ''));
-$v['special_mention']  = trim((string)$v['special_mention']);
+$v['name'] = trim((string) $v['name']);
+$v['company_name'] = trim((string) $v['company_name']);
+$v['contact_number'] = digits_only((string) $v['contact_number']);
+$v['email'] = trim((string) $v['email']);
+$v['designation'] = trim((string) $v['designation']);
+$v['designation_other'] = trim((string) ($v['designation_other'] ?? ''));
+$v['industry_other'] = trim((string) ($v['industry_other'] ?? ''));
+$v['special_mention'] = trim((string) $v['special_mention']);
 
-$industries  = is_array($v['industries'])  ? $v['industries']  : [];
-$applications= is_array($v['applications'])? $v['applications']: [];
+$industries = is_array($v['industries']) ? $v['industries'] : [];
+$applications = is_array($v['applications']) ? $v['applications'] : [];
 
-if ($v['name'] === '') $errors['name'] = 'Name is required.';
-if ($v['company_name'] === '') $errors['company_name'] = 'Company name is required.';
+if ($v['name'] === '')
+    $errors['name'] = 'Name is required.';
+if ($v['company_name'] === '')
+    $errors['company_name'] = 'Company name is required.';
 if ($v['contact_number'] === '' || strlen($v['contact_number']) < 7 || strlen($v['contact_number']) > 15)
     $errors['contact_number'] = 'Provide a valid phone (7–15 digits).';
-if (!filter_var($v['email'], FILTER_VALIDATE_EMAIL)) $errors['email'] = 'Provide a valid email.';
-if ($v['designation'] === '') $errors['designation'] = 'Designation is required.';
-if (strcasecmp($v['designation'], 'Other') === 0 && $v['designation_other'] === '') 
+if (!filter_var($v['email'], FILTER_VALIDATE_EMAIL))
+    $errors['email'] = 'Provide a valid email.';
+if ($v['designation'] === '')
+    $errors['designation'] = 'Designation is required.';
+if (strcasecmp($v['designation'], 'Other') === 0 && $v['designation_other'] === '')
     $errors['designation_other'] = 'Please specify other designation.';
-if (count($industries) < 1) $errors['industries'] = 'Select at least one industry.';
-if (in_array('Other', $industries, true) && ($v['industry_other'] ?? '') === '') 
+if (count($industries) < 1)
+    $errors['industries'] = 'Select at least one industry.';
+if (in_array('Other', $industries, true) && ($v['industry_other'] ?? '') === '')
     $errors['industry_other'] = 'Please specify other industry.';
-if (count($applications) < 1) $errors['applications'] = 'Select at least one application.';
+if (count($applications) < 1)
+    $errors['applications'] = 'Select at least one application.';
 $selfieDataUrl = $payload['selfie']['data_url'] ?? '';
-if ($selfieDataUrl === '') $errors['selfie'] = 'Selfie is required.';
+if ($selfieDataUrl === '')
+    $errors['selfie'] = 'Selfie is required.';
 
-if (!empty($errors)) json_response(422, ['ok' => false, 'errors' => $errors]);
+if (!empty($errors))
+    json_response(422, ['ok' => false, 'errors' => $errors]);
 
 // ---------- Save selfie ----------
 $storageDir = __DIR__ . '/storage';
 $imagesDir = $storageDir . '/selfies';
 ensure_dir($imagesDir);
 
-$eventId = preg_replace('/[^A-Za-z0-9_-]+/', '', (string)($payload['meta']['event_id'] ?? 'EXPO'));
+$eventId = preg_replace('/[^A-Za-z0-9_-]+/', '', (string) ($payload['meta']['event_id'] ?? 'EXPO'));
 $uid = bin2hex(random_bytes(3));
 $stamp = date('Ymd-His');
 $id = sprintf('%s-%s-%s', $eventId ?: 'EXPO', $stamp, $uid);
@@ -158,7 +177,7 @@ $record = [
     'id' => $id,
     'received_at' => date('c'),
     'meta' => [
-        'source' => (string)($payload['meta']['source'] ?? 'exhibition-form'),
+        'source' => (string) ($payload['meta']['source'] ?? 'exhibition-form'),
         'event_id' => $eventId,
         'submitted_at' => date('c'),
         'ip' => $_SERVER['REMOTE_ADDR'] ?? '',
@@ -192,23 +211,23 @@ $stmt = $pdo->prepare("
 ");
 
 $stmt->execute([
-    ':submission_id'   => $id,                      // <-- was ':id'
-    ':event_id'        => $eventId,
-    ':source'          => $record['meta']['source'],
-    ':submitted_at'    => date('Y-m-d H:i:s'),
-    ':name'            => $v['name'],
-    ':company_name'    => $v['company_name'],
-    ':contact_number'  => $v['contact_number'],
-    ':email'           => $v['email'],
-    ':designation'     => $v['designation'],
-    ':designation_other'=> $v['designation_other'],
-    ':industries'      => json_encode($industries, JSON_UNESCAPED_UNICODE),
-    ':industry_other'  => $v['industry_other'] ?? '',
-    ':applications'    => json_encode($applications, JSON_UNESCAPED_UNICODE),
+    ':submission_id' => $id,                      // <-- was ':id'
+    ':event_id' => $eventId,
+    ':source' => $record['meta']['source'],
+    ':submitted_at' => date('Y-m-d H:i:s'),
+    ':name' => $v['name'],
+    ':company_name' => $v['company_name'],
+    ':contact_number' => $v['contact_number'],
+    ':email' => $v['email'],
+    ':designation' => $v['designation'],
+    ':designation_other' => $v['designation_other'],
+    ':industries' => json_encode($industries, JSON_UNESCAPED_UNICODE),
+    ':industry_other' => $v['industry_other'] ?? '',
+    ':applications' => json_encode($applications, JSON_UNESCAPED_UNICODE),
     ':special_mention' => $v['special_mention'],
-    ':selfie_path'     => 'storage/selfies/' . basename($selfiePath),
-    ':ip'              => ip_to_bin($_SERVER['REMOTE_ADDR'] ?? null),
-    ':ua'              => $_SERVER['HTTP_USER_AGENT'] ?? '',
+    ':selfie_path' => 'storage/selfies/' . basename($selfiePath),
+    ':ip' => ip_to_bin($_SERVER['REMOTE_ADDR'] ?? null),
+    ':ua' => $_SERVER['HTTP_USER_AGENT'] ?? '',
 ]);
 
 // ---------- Emails ----------
