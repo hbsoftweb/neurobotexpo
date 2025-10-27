@@ -63,5 +63,5 @@ if (!defined('MAIL_FROM'))          define('MAIL_FROM', env('MAIL_FROM', SMTP_US
 if (!defined('MAIL_FROM_NAME'))     define('MAIL_FROM_NAME', env('MAIL_FROM_NAME', 'Neurobot Expo'));
 if (!defined('MAIL_ADMIN'))         define('MAIL_ADMIN', env('MAIL_ADMIN', SMTP_USER));
 
-if (!defined('ADMIN_EMAIL'))        define('ADMIN_EMAIL', env('ADMIN_EMAIL', 'admin@123.com'));
+if (!defined('ADMIN_EMAIL'))        define('ADMIN_EMAIL', env('ADMIN_EMAIL', 'info@acrifabgroup.com'));
 if (!defined('ADMIN_PASSWORD_HASH'))define('ADMIN_PASSWORD_HASH', env('ADMIN_PASSWORD_HASH', '$2y$10$c3cGYvbAV4vYF2RDSAksWuDauqs9F5ayMzDs.Syo7Fo.5CEjs.WdC'));
