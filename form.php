@@ -7,6 +7,7 @@ if (empty($_SESSION['csrf_token'])) {
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -26,29 +27,67 @@ if (empty($_SESSION['csrf_token'])) {
 
     <!-- Toast (tiny, self-contained) -->
     <style>
-        .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); padding: 12px 16px;
-                 border-radius: 10px; font: 14px/1.4 system-ui, Arial; color: #fff; background: #333;
-                 box-shadow: 0 8px 30px rgba(0,0,0,.4); z-index: 9999; opacity: 0; pointer-events: none; transition: opacity .25s }
-        .toast--show { opacity: 1; pointer-events: auto }
-        .toast--error { background: #c0392b }
-        .toast--success { background: #2e7d32 }
-        .invalid-hint { color: #ffb4b4; font-size: 12px; margin-top: 10px; display: none }
-        .invalid .invalid-hint { display: block }
-        .is-loading { opacity: .8; cursor: not-allowed; }
+        .toast {
+            position: fixed;
+            left: 50%;
+            bottom: 24px;
+            transform: translateX(-50%);
+            padding: 12px 16px;
+            border-radius: 10px;
+            font: 14px/1.4 system-ui, Arial;
+            color: #fff;
+            background: #333;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, .4);
+            z-index: 9999;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .25s
+        }
+
+        .toast--show {
+            opacity: 1;
+            pointer-events: auto
+        }
+
+        .toast--error {
+            background: #c0392b
+        }
+
+        .toast--success {
+            background: #2e7d32
+        }
+
+        .invalid-hint {
+            color: #ffb4b4;
+            font-size: 12px;
+            margin-top: 10px;
+            display: none
+        }
+
+        .invalid .invalid-hint {
+            display: block
+        }
+
+        .is-loading {
+            opacity: .8;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 
 <body>
     <div class="main">
         <div class="logo-wrapper">
-            <img src="assets/images/Neurobot-Logo.svg" alt="Neurobot Logo" loading="lazy" width="500" height="150" decoding="async" />
+            <img src="assets/images/Neurobot-Logo.svg" alt="Neurobot Logo" loading="lazy" width="500" height="150"
+                decoding="async" />
         </div>
 
         <div class="container">
             <div class="form-holder">
                 <!-- JSON submit to submit.php -->
                 <form id="exhibition-form" action="submit.php" data-endpoint="submit.php" method="post" novalidate>
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
+                    <input type="hidden" name="csrf_token"
+                        value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
                     <input type="hidden" name="source" value="exhibition-form">
                     <input type="hidden" name="event_id" id="event_id" value="">
                     <input type="hidden" name="selfie_data" id="selfie_data" value="">
@@ -56,59 +95,86 @@ if (empty($_SESSION['csrf_token'])) {
                     <!-- STEP 1 -->
                     <div class="form-step" data-step>
                         <label class="label-input" for="name">Name*</label>
-                        <input class="stepper-input" id="name" name="name" type="text" placeholder="Enter Your Name" autocomplete="name" required>
+                        <input class="stepper-input" id="name" name="name" type="text" placeholder="Enter Your Name"
+                            autocomplete="name" required>
                         <div class="invalid-hint">Please enter your name.</div>
                     </div>
 
                     <!-- STEP 2 -->
                     <div class="form-step" data-step>
                         <label class="label-input" for="company_name">Company Name*</label>
-                        <input class="stepper-input" id="company_name" name="company_name" type="text" placeholder="Enter Your Company Name" autocomplete="organization" required>
+                        <input class="stepper-input" id="company_name" name="company_name" type="text"
+                            placeholder="Enter Your Company Name" autocomplete="organization" required>
                         <div class="invalid-hint">Please enter your company name.</div>
                     </div>
 
                     <!-- STEP 3 -->
                     <div class="form-step" data-step>
                         <label class="label-input" for="contact_number">Contact Number*</label>
-                        <input class="stepper-input" id="contact_number" name="contact_number" type="tel" inputmode="numeric" placeholder="Enter Your Phone number" pattern="^[0-9]{7,15}$" aria-describedby="phoneHelp" required>
-                        <small id="phoneHelp" style="display:block;opacity:.8;margin-top:10px">Digits only, 7–15 characters.</small>
+                        <input class="stepper-input" id="contact_number" name="contact_number" type="tel"
+                            inputmode="numeric" placeholder="Enter Your Phone number" pattern="^[+]?[\d-]{7,20}$"
+                            title="Enter a valid phone number (digits, optional + and -). 7–15 digits in total."
+                            aria-describedby="phoneHelp" required>
+
+                        <small id="phoneHelp" style="display:block;opacity:.8;margin-top:10px">
+                            Digits with optional “+” and “-”. Total digits must be 7–15 (e.g. +91-9313381842).
+                        </small>
+
                         <div class="invalid-hint">Enter a valid phone (digits only, 7–15).</div>
                     </div>
 
                     <!-- STEP 4 -->
                     <div class="form-step" data-step>
                         <label class="label-input" for="email">Email*</label>
-                        <input class="stepper-input" id="email" name="email" type="email" placeholder="Enter Your Email" autocomplete="email" required>
+                        <input class="stepper-input" id="email" name="email" type="email" placeholder="Enter Your Email"
+                            autocomplete="email" required>
                         <div class="invalid-hint">Please enter a valid email address.</div>
                     </div>
 
                     <!-- STEP 5: Designation -->
                     <div class="form-step" data-step>
                         <label class="label-input" for="designation">Designation*</label>
-                        <div class="checkbox-group" id="designation-group" role="radiogroup" aria-labelledby="designation">
+                        <div class="checkbox-group" id="designation-group" role="radiogroup"
+                            aria-labelledby="designation">
                             <label class="radio-inputs">
                                 <input class="radio-input" type="radio" value="Founder/CEO" name="designation" required>
-                                <span class="radio-tile"><span class="radio-icon"><img alt="Founder/CEO" loading="lazy" width="97" height="97" decoding="async" class="radio-icon-img" src="assets/images/Founder-CEO.svg"></span><span class="radio-label">Founder/CEO</span></span>
+                                <span class="radio-tile"><span class="radio-icon"><img alt="Founder/CEO" loading="lazy"
+                                            width="97" height="97" decoding="async" class="radio-icon-img"
+                                            src="assets/images/Founder-CEO.svg"></span><span
+                                        class="radio-label">Founder/CEO</span></span>
                             </label>
                             <label class="radio-inputs">
                                 <input class="radio-input" type="radio" value="Purchase Head" name="designation">
-                                <span class="radio-tile"><span class="radio-icon"><img alt="Purchase Head" loading="lazy" width="97" height="97" decoding="async" class="radio-icon-img" src="assets/images/Purchase-Head.svg"></span><span class="radio-label">Purchase Head</span></span>
+                                <span class="radio-tile"><span class="radio-icon"><img alt="Purchase Head"
+                                            loading="lazy" width="97" height="97" decoding="async"
+                                            class="radio-icon-img" src="assets/images/Purchase-Head.svg"></span><span
+                                        class="radio-label">Purchase Head</span></span>
                             </label>
                             <label class="radio-inputs">
                                 <input class="radio-input" type="radio" value="Decision Maker" name="designation">
-                                <span class="radio-tile"><span class="radio-icon"><img alt="Decision Maker" loading="lazy" width="96" height="96" decoding="async" class="radio-icon-img" src="assets/images/Decision-Maker.svg"></span><span class="radio-label">Decision Maker</span></span>
+                                <span class="radio-tile"><span class="radio-icon"><img alt="Decision Maker"
+                                            loading="lazy" width="96" height="96" decoding="async"
+                                            class="radio-icon-img" src="assets/images/Decision-Maker.svg"></span><span
+                                        class="radio-label">Decision Maker</span></span>
                             </label>
                             <label class="radio-inputs">
                                 <input class="radio-input" type="radio" value="Production" name="designation">
-                                <span class="radio-tile"><span class="radio-icon"><img alt="Production" loading="lazy" width="96" height="96" decoding="async" class="radio-icon-img" src="assets/images/Production.svg"></span><span class="radio-label">Production</span></span>
+                                <span class="radio-tile"><span class="radio-icon"><img alt="Production" loading="lazy"
+                                            width="96" height="96" decoding="async" class="radio-icon-img"
+                                            src="assets/images/Production.svg"></span><span
+                                        class="radio-label">Production</span></span>
                             </label>
                             <label class="radio-inputs">
                                 <input class="radio-input" type="radio" value="Other" name="designation">
-                                <span class="radio-tile"><span class="radio-icon"><img alt="Other" loading="lazy" width="97" height="97" decoding="async" class="radio-icon-img" src="assets/images/Other.svg"></span><span class="radio-label">Other</span></span>
+                                <span class="radio-tile"><span class="radio-icon"><img alt="Other" loading="lazy"
+                                            width="97" height="97" decoding="async" class="radio-icon-img"
+                                            src="assets/images/Other.svg"></span><span
+                                        class="radio-label">Other</span></span>
                             </label>
                         </div>
                         <div>
-                            <input class="stepper-input" id="designation_other" name="designation_other" type="text" placeholder="Other Designation" aria-hidden="true" hidden>
+                            <input class="stepper-input" id="designation_other" name="designation_other" type="text"
+                                placeholder="Other Designation" aria-hidden="true" hidden>
                         </div>
                         <div class="invalid-hint">Please choose your designation (and specify if Other).</div>
                     </div>
@@ -117,15 +183,40 @@ if (empty($_SESSION['csrf_token'])) {
                     <div class="form-step" data-step>
                         <label class="label-input" for="industry">Industry* (select all that apply)</label>
                         <div class="checkbox-group" id="industry-group" role="group" aria-labelledby="industry">
-                            <label class="radio-inputs"><input class="radio-input" type="checkbox" value="Pharma" name="industry[]"><span class="radio-tile"><span class="radio-icon"><img alt="Pharma" loading="lazy" width="97" height="97" decoding="async" class="radio-icon-img" src="assets/images/Pharma.svg"></span><span class="radio-label">Pharma</span></span></label>
-                            <label class="radio-inputs"><input class="radio-input" type="checkbox" value="Packaging" name="industry[]"><span class="radio-tile"><span class="radio-icon"><img alt="Packaging" loading="lazy" width="97" height="97" decoding="async" class="radio-icon-img" src="assets/images/Packaging.svg"></span><span class="radio-label">Packaging</span></span></label>
-                            <label class="radio-inputs"><input class="radio-input" type="checkbox" value="Automotive" name="industry[]"><span class="radio-tile"><span class="radio-icon"><img alt="Automotive" loading="lazy" width="96" height="96" decoding="async" class="radio-icon-img" src="assets/images/Automotive.svg"></span><span class="radio-label">Automotive</span></span></label>
-                            <label class="radio-inputs"><input class="radio-input" type="checkbox" value="FMCG" name="industry[]"><span class="radio-tile"><span class="radio-icon"><img alt="FMCG" loading="lazy" width="96" height="96" decoding="async" class="radio-icon-img" src="assets/images/FMCG.svg"></span><span class="radio-label">FMCG</span></span></label>
-                            <label class="radio-inputs"><input class="radio-input" type="checkbox" value="Electronics" name="industry[]"><span class="radio-tile"><span class="radio-icon"><img alt="Electronics" loading="lazy" width="97" height="97" decoding="async" class="radio-icon-img" src="assets/images/Electronics.svg"></span><span class="radio-label">Electronics</span></span></label>
-                            <label class="radio-inputs"><input class="radio-input" type="checkbox" value="Other" name="industry[]"><span class="radio-tile"><span class="radio-icon"><img alt="Other" loading="lazy" width="97" height="97" decoding="async" class="radio-icon-img" src="assets/images/Other.svg"></span><span class="radio-label">Other</span></span></label>
+                            <label class="radio-inputs"><input class="radio-input" type="checkbox" value="Pharma"
+                                    name="industry[]"><span class="radio-tile"><span class="radio-icon"><img
+                                            alt="Pharma" loading="lazy" width="97" height="97" decoding="async"
+                                            class="radio-icon-img" src="assets/images/Pharma.svg"></span><span
+                                        class="radio-label">Pharma</span></span></label>
+                            <label class="radio-inputs"><input class="radio-input" type="checkbox" value="Packaging"
+                                    name="industry[]"><span class="radio-tile"><span class="radio-icon"><img
+                                            alt="Packaging" loading="lazy" width="97" height="97" decoding="async"
+                                            class="radio-icon-img" src="assets/images/Packaging.svg"></span><span
+                                        class="radio-label">Packaging</span></span></label>
+                            <label class="radio-inputs"><input class="radio-input" type="checkbox" value="Automotive"
+                                    name="industry[]"><span class="radio-tile"><span class="radio-icon"><img
+                                            alt="Automotive" loading="lazy" width="96" height="96" decoding="async"
+                                            class="radio-icon-img" src="assets/images/Automotive.svg"></span><span
+                                        class="radio-label">Automotive</span></span></label>
+                            <label class="radio-inputs"><input class="radio-input" type="checkbox" value="FMCG"
+                                    name="industry[]"><span class="radio-tile"><span class="radio-icon"><img alt="FMCG"
+                                            loading="lazy" width="96" height="96" decoding="async"
+                                            class="radio-icon-img" src="assets/images/FMCG.svg"></span><span
+                                        class="radio-label">FMCG</span></span></label>
+                            <label class="radio-inputs"><input class="radio-input" type="checkbox" value="Electronics"
+                                    name="industry[]"><span class="radio-tile"><span class="radio-icon"><img
+                                            alt="Electronics" loading="lazy" width="97" height="97" decoding="async"
+                                            class="radio-icon-img" src="assets/images/Electronics.svg"></span><span
+                                        class="radio-label">Electronics</span></span></label>
+                            <label class="radio-inputs"><input class="radio-input" type="checkbox" value="Other"
+                                    name="industry[]"><span class="radio-tile"><span class="radio-icon"><img alt="Other"
+                                            loading="lazy" width="97" height="97" decoding="async"
+                                            class="radio-icon-img" src="assets/images/Other.svg"></span><span
+                                        class="radio-label">Other</span></span></label>
                         </div>
                         <div>
-                            <input class="stepper-input" id="industry_other" name="industry_other" type="text" placeholder="Other Industry" aria-hidden="true" hidden>
+                            <input class="stepper-input" id="industry_other" name="industry_other" type="text"
+                                placeholder="Other Industry" aria-hidden="true" hidden>
                         </div>
                         <small style="display:block;opacity:.8">Pick one or more industries.</small>
                         <div class="invalid-hint">Select at least one industry (and specify if Other).</div>
@@ -137,41 +228,103 @@ if (empty($_SESSION['csrf_token'])) {
 
                         <div class="application-wrapper">
                             <div class="img-wpr-category">
-                                <img alt="Printer Image" loading="lazy" width="150" height="150" decoding="async" class="img-wrapper-categpryone" src="assets/images/Printer.webp">
+                                <img alt="Printer Image" loading="lazy" width="150" height="150" decoding="async"
+                                    class="img-wrapper-categpryone" src="assets/images/Printer.webp">
                             </div>
                             <div class="checkbox-group-application" id="application-group-1">
-                                <label class="radio-inputs"><input class="radio-input" type="checkbox" value="R10" name="application[]"><span class="radio-tile radio-tile-application"><span class="radio-icon"></span><span class="radio-label radio-label-application">R10</span></span></label>
-                                <label class="radio-inputs"><input class="radio-input" type="checkbox" value="R20" name="application[]"><span class="radio-tile radio-tile-application"><span class="radio-icon"></span><span class="radio-label radio-label-application">R20</span></span></label>
-                                <label class="radio-inputs"><input class="radio-input" type="checkbox" value="R60" name="application[]"><span class="radio-tile radio-tile-application"><span class="radio-icon"></span><span class="radio-label radio-label-application">R60</span></span></label>
-                                <label class="radio-inputs"><input class="radio-input" type="checkbox" value="1200e" name="application[]"><span class="radio-tile radio-tile-application"><span class="radio-icon"></span><span class="radio-label radio-label-application">1200e</span></span></label>
-                                <label class="radio-inputs"><input class="radio-input" type="checkbox" value="B1040H" name="application[]"><span class="radio-tile radio-tile-application"><span class="radio-icon"></span><span class="radio-label radio-label-application">B1040H</span></span></label>
+                                <label class="radio-inputs"><input class="radio-input" type="checkbox" value="R10"
+                                        name="application[]"><span class="radio-tile radio-tile-application"><span
+                                            class="radio-icon"></span><span
+                                            class="radio-label radio-label-application">R10</span></span></label>
+                                <label class="radio-inputs"><input class="radio-input" type="checkbox" value="R20"
+                                        name="application[]"><span class="radio-tile radio-tile-application"><span
+                                            class="radio-icon"></span><span
+                                            class="radio-label radio-label-application">R20</span></span></label>
+                                <label class="radio-inputs"><input class="radio-input" type="checkbox" value="R60"
+                                        name="application[]"><span class="radio-tile radio-tile-application"><span
+                                            class="radio-icon"></span><span
+                                            class="radio-label radio-label-application">R60</span></span></label>
+                                <label class="radio-inputs"><input class="radio-input" type="checkbox" value="1200e"
+                                        name="application[]"><span class="radio-tile radio-tile-application"><span
+                                            class="radio-icon"></span><span
+                                            class="radio-label radio-label-application">1200e</span></span></label>
+                                <label class="radio-inputs"><input class="radio-input" type="checkbox" value="B1040H"
+                                        name="application[]"><span class="radio-tile radio-tile-application"><span
+                                            class="radio-icon"></span><span
+                                            class="radio-label radio-label-application">B1040H</span></span></label>
                             </div>
                         </div>
 
                         <div class="application-wrapper">
                             <div class="img-wpr-category">
-                                <img alt="Camera Image" loading="lazy" width="150" height="150" decoding="async" class="img-wrapper-categpryone" src="assets/images/Vision.webp">
+                                <img alt="Camera Image" loading="lazy" width="150" height="150" decoding="async"
+                                    class="img-wrapper-categpryone" src="assets/images/Vision.webp">
                             </div>
                             <div class="checkbox-group-application" id="application-group-2">
-                                <label class="radio-inputs"><input class="radio-input" type="checkbox" value="Lenia Lite 4K (LINE SCAN)" name="application[]"><span class="radio-tile radio-tile-application"><span class="radio-icon"></span><span class="radio-label radio-label-application">Lenia Lite 4K <br>(LINE SCAN)</span></span></label>
-                                <label class="radio-inputs"><input class="radio-input" type="checkbox" value="Z-Track (3D Profiler)" name="application[]"><span class="radio-tile radio-tile-application"><span class="radio-icon"></span><span class="radio-label radio-label-application">Z-Track <br>(3D Profiler)</span></span></label>
-                                <label class="radio-inputs"><input class="radio-input" type="checkbox" value="Flir BFS-PGE-50S4C-C" name="application[]"><span class="radio-tile radio-tile-application"><span class="radio-icon"></span><span class="radio-label radio-label-application">Flir BFS-PGE-50S4C-C</span></span></label>
-                                <label class="radio-inputs"><input class="radio-input" type="checkbox" value="Zebra VS - 40" name="application[]"><span class="radio-tile radio-tile-application"><span class="radio-icon"></span><span class="radio-label radio-label-application">Zebra VS - 40</span></span></label>
-                                <label class="radio-inputs"><input class="radio-input" type="checkbox" value="Zebra FS - 70" name="application[]"><span class="radio-tile radio-tile-application"><span class="radio-icon"></span><span class="radio-label radio-label-application">Zebra FS - 70</span></span></label>
-                                <label class="radio-inputs"><input class="radio-input" type="checkbox" value="Camera BFS-PGE-16S2M-CS" name="application[]"><span class="radio-tile radio-tile-application"><span class="radio-icon"></span><span class="radio-label radio-label-application">Camera BFS-PGE-16S2M-CS</span></span></label>
+                                <label class="radio-inputs"><input class="radio-input" type="checkbox"
+                                        value="Lenia Lite 4K (LINE SCAN)" name="application[]"><span
+                                        class="radio-tile radio-tile-application"><span class="radio-icon"></span><span
+                                            class="radio-label radio-label-application">Lenia Lite 4K <br>(LINE
+                                            SCAN)</span></span></label>
+                                <label class="radio-inputs"><input class="radio-input" type="checkbox"
+                                        value="Z-Track (3D Profiler)" name="application[]"><span
+                                        class="radio-tile radio-tile-application"><span class="radio-icon"></span><span
+                                            class="radio-label radio-label-application">Z-Track <br>(3D
+                                            Profiler)</span></span></label>
+                                <label class="radio-inputs"><input class="radio-input" type="checkbox"
+                                        value="Flir BFS-PGE-50S4C-C" name="application[]"><span
+                                        class="radio-tile radio-tile-application"><span class="radio-icon"></span><span
+                                            class="radio-label radio-label-application">Flir
+                                            BFS-PGE-50S4C-C</span></span></label>
+                                <label class="radio-inputs"><input class="radio-input" type="checkbox"
+                                        value="Zebra VS - 40" name="application[]"><span
+                                        class="radio-tile radio-tile-application"><span class="radio-icon"></span><span
+                                            class="radio-label radio-label-application">Zebra VS -
+                                            40</span></span></label>
+                                <label class="radio-inputs"><input class="radio-input" type="checkbox"
+                                        value="Zebra FS - 70" name="application[]"><span
+                                        class="radio-tile radio-tile-application"><span class="radio-icon"></span><span
+                                            class="radio-label radio-label-application">Zebra FS -
+                                            70</span></span></label>
+                                <label class="radio-inputs"><input class="radio-input" type="checkbox"
+                                        value="Camera BFS-PGE-16S2M-CS" name="application[]"><span
+                                        class="radio-tile radio-tile-application"><span class="radio-icon"></span><span
+                                            class="radio-label radio-label-application">Camera
+                                            BFS-PGE-16S2M-CS</span></span></label>
                             </div>
                         </div>
 
                         <div class="application-wrapper">
                             <div class="img-wpr-category">
-                                <img alt="Microscope Image" loading="lazy" width="150" height="150" decoding="async" class="img-wrapper-categpryone" src="assets/images/Microscope.webp">
+                                <img alt="Microscope Image" loading="lazy" width="150" height="150" decoding="async"
+                                    class="img-wrapper-categpryone" src="assets/images/Microscope.webp">
                             </div>
                             <div class="checkbox-group-application" id="application-group-3">
-                                <label class="radio-inputs"><input class="radio-input" type="checkbox" value="3D Microscope" name="application[]"><span class="radio-tile radio-tile-application"><span class="radio-icon"></span><span class="radio-label radio-label-application">3D Microscope</span></span></label>
-                                <label class="radio-inputs"><input class="radio-input" type="checkbox" value="7&quot; Touch Screen Microscope" name="application[]"><span class="radio-tile radio-tile-application"><span class="radio-icon"></span><span class="radio-label radio-label-application">7" Touch Screen Microscope</span></span></label>
-                                <label class="radio-inputs"><input class="radio-input" type="checkbox" value="4K 3D Microscope" name="application[]"><span class="radio-tile radio-tile-application"><span class="radio-icon"></span><span class="radio-label radio-label-application">4K 3D Microscope</span></span></label>
-                                <label class="radio-inputs"><input class="radio-input" type="checkbox" value="Auto Focus Microscope" name="application[]"><span class="radio-tile radio-tile-application"><span class="radio-icon"></span><span class="radio-label radio-label-application">Auto Focus Microscope</span></span></label>
-                                <label class="radio-inputs"><input class="radio-input" type="checkbox" value="Sterio Microscope" name="application[]"><span class="radio-tile radio-tile-application"><span class="radio-icon"></span><span class="radio-label radio-label-application">Sterio Microscope</span></span></label>
+                                <label class="radio-inputs"><input class="radio-input" type="checkbox"
+                                        value="3D Microscope" name="application[]"><span
+                                        class="radio-tile radio-tile-application"><span class="radio-icon"></span><span
+                                            class="radio-label radio-label-application">3D
+                                            Microscope</span></span></label>
+                                <label class="radio-inputs"><input class="radio-input" type="checkbox"
+                                        value="7&quot; Touch Screen Microscope" name="application[]"><span
+                                        class="radio-tile radio-tile-application"><span class="radio-icon"></span><span
+                                            class="radio-label radio-label-application">7" Touch Screen
+                                            Microscope</span></span></label>
+                                <label class="radio-inputs"><input class="radio-input" type="checkbox"
+                                        value="4K 3D Microscope" name="application[]"><span
+                                        class="radio-tile radio-tile-application"><span class="radio-icon"></span><span
+                                            class="radio-label radio-label-application">4K 3D
+                                            Microscope</span></span></label>
+                                <label class="radio-inputs"><input class="radio-input" type="checkbox"
+                                        value="Auto Focus Microscope" name="application[]"><span
+                                        class="radio-tile radio-tile-application"><span class="radio-icon"></span><span
+                                            class="radio-label radio-label-application">Auto Focus
+                                            Microscope</span></span></label>
+                                <label class="radio-inputs"><input class="radio-input" type="checkbox"
+                                        value="Sterio Microscope" name="application[]"><span
+                                        class="radio-tile radio-tile-application"><span class="radio-icon"></span><span
+                                            class="radio-label radio-label-application">Sterio
+                                            Microscope</span></span></label>
                             </div>
                         </div>
                         <small style="display:block;opacity:.8">Select at least one application.</small>
@@ -181,7 +334,8 @@ if (empty($_SESSION['csrf_token'])) {
                     <!-- STEP 8 -->
                     <div class="form-step" data-step>
                         <label class="label-input" for="special_mention">Special Mention*</label>
-                        <input class="stepper-input" id="special_mention" name="special_mention" type="text" placeholder="Enter Special Mention" required>
+                        <input class="stepper-input" id="special_mention" name="special_mention" type="text"
+                            placeholder="Enter Special Mention" required>
                         <div class="invalid-hint">Please enter a special mention.</div>
                     </div>
 
@@ -189,23 +343,28 @@ if (empty($_SESSION['csrf_token'])) {
                     <div class="form-step cam-div" data-step>
                         <label class="label-input" for="camera">Capture Your Selfie*</label>
                         <div class="cam-holder" id="cam-holder">
-                            <video id="camera" autoplay muted playsinline style="max-width:100%;border-radius:12px;"></video>
+                            <video id="camera" autoplay muted playsinline
+                                style="max-width:100%;border-radius:12px;"></video>
                             <canvas id="snapshot" style="max-width:100%;border-radius:12px;display:none;"></canvas>
                         </div>
 
                         <div class="cross-cut-button selfie-button" id="captureBtn" role="button" tabindex="0">
                             Capture Selfie <div class="arrowsup"></div>
                         </div>
-                        <div class="cross-cut-button selfie-button" id="retakeBtn" role="button" tabindex="0" style="display:none;">
+                        <div class="cross-cut-button selfie-button" id="retakeBtn" role="button" tabindex="0"
+                            style="display:none;">
                             Retake Selfie <div class="arrowsup"></div>
                         </div>
-                        <small id="selfieHelp" style="display:block;opacity:.8">We’ll save a still image (no video stored).</small>
+                        <small id="selfieHelp" style="display:block;opacity:.8">We’ll save a still image (no video
+                            stored).</small>
                     </div>
 
                     <!-- Wizard controls (sticky) -->
                     <div class="button-holder" id="wizardButtons">
-                        <button type="button" class="cross-cut-button" id="prevBtn">PREV <div class="arrowsup"></div></button>
-                        <button type="button" class="cross-cut-button" id="nextBtn">NEXT <div class="arrows"></div></button>
+                        <button type="button" class="cross-cut-button" id="prevBtn">PREV <div class="arrowsup"></div>
+                        </button>
+                        <button type="button" class="cross-cut-button" id="nextBtn">NEXT <div class="arrows"></div>
+                        </button>
                     </div>
 
                     <!-- Thanks -->
@@ -330,7 +489,7 @@ if (empty($_SESSION['csrf_token'])) {
                     canvas.style.display = 'none';
                     retakeBtn.style.display = 'none';
                     selfieData.value = '';
-                    await video.play().catch(() => {});
+                    await video.play().catch(() => { });
                 } catch (err) {
                     console.error('Camera error:', err);
                     $('#selfieHelp').textContent = 'Camera blocked. Check site permissions and Permissions-Policy. (Chrome: lock icon → Site settings → Camera → Allow)';
@@ -381,10 +540,27 @@ if (empty($_SESSION['csrf_token'])) {
                 }
                 if (stepEl.contains($('#contact_number'))) {
                     const el = $('#contact_number');
-                    const ok = /^[0-9]{7,15}$/.test(el.value.trim());
-                    if (!ok) { el.setCustomValidity('Digits only, 7–15 characters.'); valid = false; }
+                    const raw = el.value.trim();
+
+                    // 1) Basic format: optional leading +, digits and hyphens only
+                    const formatOk = /^[+]?[\d-]{7,20}$/.test(raw);
+
+                    // 2) Count digits only (ignore + and -) must be 7–15
+                    const digitCount = (raw.match(/\d/g) || []).length;
+                    const digitsOk = digitCount >= 7 && digitCount <= 15;
+
+                    // 3) If there is a +, it must be only at the start (already ensured by regex)
+                    const ok = formatOk && digitsOk;
+
+                    if (!ok) {
+                        el.setCustomValidity('Enter a valid phone (digits with optional + and -). 7–15 digits in total.');
+                        valid = false;
+                    } else {
+                        el.setCustomValidity('');
+                    }
                     setValidity(el, ok);
                 }
+
                 if (stepEl.contains($('#email'))) {
                     const el = $('#email'); const ok = el.checkValidity(); if (!ok) valid = false; setValidity(el, ok);
                 }
@@ -518,7 +694,7 @@ if (empty($_SESSION['csrf_token'])) {
                     try {
                         const cur = JSON.parse(sessionStorage.getItem('currentExhibition') || 'null');
                         if (cur && cur.code) eParam = (qs ? '&' : '?') + 'e=' + encodeURIComponent(cur.code);
-                    } catch {}
+                    } catch { }
                     window.location.assign(THANKS_URL + qs + eParam);
                 } catch (err) {
                     console.warn('Submit failed, showing payload for debugging:', err);
@@ -543,4 +719,5 @@ if (empty($_SESSION['csrf_token'])) {
         })();
     </script>
 </body>
+
 </html>

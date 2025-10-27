@@ -118,7 +118,26 @@ $v = $payload['visitor'];
 $v = $payload['visitor'];
 $v['name'] = trim((string) $v['name']);
 $v['company_name'] = trim((string) $v['company_name']);
-$v['contact_number'] = digits_only((string) $v['contact_number']);
+
+/* === CHANGED: allow + and - while enforcing 7–15 digits total === */
+$rawPhone = trim((string)$v['contact_number']);
+
+// Only allow: optional leading +, then digits and hyphens
+if ($rawPhone === '' || !preg_match('/^[+]?[\d-]+$/', $rawPhone)) {
+    $errors['contact_number'] = 'Provide a valid phone.';
+} else {
+    // Count digits only to enforce 7–15 digits rule
+    $digitCount = preg_match_all('/\d/', $rawPhone);
+    if ($digitCount < 7 || $digitCount > 15) {
+        $errors['contact_number'] = 'Provide a valid phone (7–15 digits).';
+    }
+}
+// Normalise minimal formatting (optional but harmless)
+$rawPhone = preg_replace('/-+/', '-', $rawPhone);     // collapse multiple hyphens
+$rawPhone = preg_replace('/^-+|-+$/', '', $rawPhone); // trim leading/trailing hyphens
+$v['contact_number'] = $rawPhone;
+/* === END CHANGED === */
+
 $v['email'] = trim((string) $v['email']);
 $v['designation'] = trim((string) $v['designation']);
 $v['designation_other'] = trim((string) ($v['designation_other'] ?? ''));
@@ -132,8 +151,6 @@ if ($v['name'] === '')
     $errors['name'] = 'Name is required.';
 if ($v['company_name'] === '')
     $errors['company_name'] = 'Company name is required.';
-if ($v['contact_number'] === '' || strlen($v['contact_number']) < 7 || strlen($v['contact_number']) > 15)
-    $errors['contact_number'] = 'Provide a valid phone (7–15 digits).';
 if (!filter_var($v['email'], FILTER_VALIDATE_EMAIL))
     $errors['email'] = 'Provide a valid email.';
 if ($v['designation'] === '')
