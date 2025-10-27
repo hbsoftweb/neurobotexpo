@@ -554,7 +554,7 @@ a {
     align-items: stretch;
     position: static;
     background-color: #000;
-    justify-content: space-between;
+    justify-content: center;
     flex-wrap: wrap;
   }
 }
