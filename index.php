@@ -96,11 +96,11 @@ $api = $base . '/api';
             <small class="muted">A code will be auto-generated (e.g., ABC-EXPO-2025)</small>
         </details>
     </div>
-    <div style="display: flex; justify-content: center;">
+    <!-- <div style="display: flex; justify-content: center;">
         <a href="dashboard.php">
             <button id="createBtn" class="cross-cut-button">Login as ADMIN?</button>
         </a>
-    </div>
+    </div> -->
 
     <script>
         const API_BASE = '<?= htmlspecialchars($api, ENT_QUOTES) ?>';
