@@ -537,7 +537,7 @@ a {
     width: 46vw;
   }
 }
-@media (max-width: 900px) {
+@media (max-width: 1050px) {
 .inquiry-data {
     padding: 20px;
     font-family: Orbitron, sans-serif;
