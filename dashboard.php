@@ -540,26 +540,21 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 .forEach(c => { c.style.maxHeight = '0px'; });
         });
 
-        // ----- Search + Union Filters + REQUIRED Exhibition filter -----
+        // ----- Search + Union Filters (event handled server-side) -----
         const searchInput = document.getElementById('searchInput');
         const exhSelect = document.getElementById('exhSelect');
         const selectedTokens = new Set();
 
         function filterRows() {
             const q = (searchInput.value || '').toLowerCase().trim();
-            const eventFilter = (exhSelect && exhSelect.value) ? exhSelect.value.trim() : '';
             const rows = document.querySelectorAll('tr.inquiry-data__row');
 
             rows.forEach(r => {
                 const text = r.dataset.text || '';
                 const inds = r.dataset.industries || '';
                 const apps = r.dataset.apps || '';
-                const ev = r.dataset.event || '';
 
                 const textMatch = q === '' ? true : text.includes(q);
-
-                // Exhibition filter is REQUIRED (no "All")
-                const eventMatch = ev === eventFilter;
 
                 // Union chip filtering
                 let chipsMatch = true;
@@ -570,7 +565,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                     }
                 }
 
-                const show = textMatch && eventMatch && chipsMatch;
+                const show = textMatch && chipsMatch;
                 r.style.display = show ? '' : 'none';
 
                 const acc = r.nextElementSibling;
@@ -583,15 +578,20 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                     acc.style.display = show ? '' : 'none';
                 }
             });
-
-            // Keep required event_id in URL
-            const url = new URL(window.location.href);
-            if (eventFilter) url.searchParams.set('event_id', eventFilter);
-            window.history.replaceState({}, '', url);
         }
 
         if (searchInput) searchInput.addEventListener('input', filterRows);
-        if (exhSelect) exhSelect.addEventListener('change', filterRows);
+
+        // Auto-reload when exhibition changes (so server returns that event's rows)
+        if (exhSelect) {
+            exhSelect.addEventListener('change', () => {
+                const ev = exhSelect.value.trim();
+                const url = new URL(window.location.href);
+                if (ev) url.searchParams.set('event_id', ev); else url.searchParams.delete('event_id');
+                url.searchParams.delete('export'); // prevent accidental CSV export carry-over
+                window.location.href = url.toString(); // full reload to fetch new event data
+            });
+        }
 
         // ----- Modal wiring -----
         const filterBtn = document.getElementById('filterBtn');
