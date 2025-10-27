@@ -1,5 +1,5 @@
 <?php
-// dashboard.php — NO PAGINATION (loads full list, optional event filter)
+// dashboard.php — NO PAGINATION (loads full list, REQUIRED event filter)
 // Protected dashboard that fetches API data, renders table + accordion, supports CSV export & logout
 declare(strict_types=1);
 
@@ -184,21 +184,14 @@ function industries_to_string($v): string
     return '—';
 }
 
-// ---------- Get data for UI (NO PAGINATION) ----------
+// ---------- Get data for UI (NO PAGINATION, REQUIRE event selection) ----------
 $meta = [];
 $selected_exh = trim((string) ($_GET['event_id'] ?? ''));
 
 // Pull ALL submissions from the API
 $items = api_fetch_all($meta);
 
-// If an exhibition (event_id) is preselected via query string, filter server-side now
-if ($selected_exh !== '') {
-    $items = array_values(array_filter($items, static function ($row) use ($selected_exh) {
-        return isset($row['event_id']) && (string) $row['event_id'] === $selected_exh;
-    }));
-}
-
-// Build filter chip sources (unique lists) from the FULL result set
+// Build chip sources from FULL set first (we need exhibitions list even before filtering)
 $chip_industries = [];
 $chip_printers = [];
 $chip_visions = [];
@@ -206,12 +199,10 @@ $chip_microscopes = [];
 $chip_exhibitions = [];
 
 foreach ($items as $r) {
-    // exhibitions (event_id)
     $ev = trim((string) ($r['event_id'] ?? ''));
     if ($ev !== '')
         $chip_exhibitions[$ev] = true;
 
-    // industries
     if (!empty($r['industries']) && is_array($r['industries'])) {
         foreach ($r['industries'] as $ind) {
             $ind = trim((string) $ind);
@@ -220,7 +211,6 @@ foreach ($items as $r) {
         }
     }
 
-    // applications by category
     $apps = $r['applications'] ?? [];
     if (!is_array($apps))
         $apps = (array) $apps;
@@ -244,19 +234,39 @@ ksort($chip_visions, SORT_NATURAL | SORT_FLAG_CASE);
 ksort($chip_microscopes, SORT_NATURAL | SORT_FLAG_CASE);
 ksort($chip_exhibitions, SORT_NATURAL | SORT_FLAG_CASE);
 
-// ---------- CSV export (ALL) ----------
-if (isset($_GET['export']) && $_GET['export'] === 'csv') {
-    // fetch full again to ensure export is complete
-    $all = api_fetch_all($meta);
-    // Optional server-side filter by event_id for CSV
-    $filter_event = trim((string) ($_GET['event_id'] ?? ''));
-    if ($filter_event !== '') {
-        $all = array_values(array_filter($all, static function ($row) use ($filter_event) {
-            return isset($row['event_id']) && (string) $row['event_id'] === $filter_event;
-        }));
+// If no exhibition selected in URL, **force** the first available one (so "All" is never a state)
+if ($selected_exh === '') {
+    $exhKeys = array_keys($chip_exhibitions);
+    if (!empty($exhKeys)) {
+        $selected_exh = $exhKeys[0]; // default to the first exhibition
+        // Set it in the URL now so export/search use it
+        $url = $_SERVER['REQUEST_URI'] ?? '';
+        $u = strtok($url, '?');
+        $params = $_GET;
+        $params['event_id'] = $selected_exh;
+        $qs = http_build_query($params);
+        header('Location: ' . $u . '?' . $qs);
+        exit;
     }
+    // If still none, leave $items empty state (no exhibitions available)
+}
 
-    $filename = 'neurobot-expo-export-' . date('Ymd-His') . '.csv';
+// Now filter items by the **selected** exhibition (required)
+if ($selected_exh !== '') {
+    $items = array_values(array_filter($items, static function ($row) use ($selected_exh) {
+        return isset($row['event_id']) && (string) $row['event_id'] === $selected_exh;
+    }));
+}
+
+// ---------- CSV export (for the selected exhibition only) ----------
+if (isset($_GET['export']) && $_GET['export'] === 'csv') {
+    $all = api_fetch_all($meta);
+    $filter_event = $selected_exh; // guaranteed non-empty due to forcing logic above
+    $all = array_values(array_filter($all, static function ($row) use ($filter_event) {
+        return isset($row['event_id']) && (string) $row['event_id'] === $filter_event;
+    }));
+
+    $filename = 'neurobot-expo-export-' . $filter_event . '-' . date('Ymd-His') . '.csv';
     header('Content-Type: text/csv; charset=utf-8');
     header('Content-Disposition: attachment; filename=' . $filename);
     $out = fopen('php://output', 'w');
@@ -285,7 +295,6 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -304,101 +313,39 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     <meta name="theme-color" content="#0f172a">
 
     <style>
-        * {
-            font-family: 'Orbitron';
-        }
-
-        .muted {
-            opacity: .7;
-        }
-
-        .click {
-            cursor: pointer;
-        }
-
-        .inquiry-data__accordion {
-            background: #000;
-        }
-
-        .chip {
-            list-style: none;
-            display: inline-block;
-            margin: 6px 8px;
-            padding: 7px 18px;
-            border: 1px solid #fff;
-            border-radius: 20px;
-        }
-
-        .chip.selected {
-            background: #05d9ff;
-            color: #000;
-            border-color: #000;
-        }
-
-        /* NEW: compact select */
-        .exh-select {
-            min-width: 220px;
-            border-radius: 10px;
-            border: 1px solid #2b2b2b;
-            background: #0c0c0c;
-            color: #fff;
-            padding: 10px 12px;
-            outline: none;
-        }
-
-        .exh-select:focus {
-            border-color: #05d9ff;
-        }
-
-        .header-right-tools {
-            display: flex;
-            align-items: stretch;
-            gap: 10px;
-        }
-
-        /* Tiny red badge on filter icon */
-        .icon-with-badge {
-            position: relative;
-        }
-
-        .icon-with-badge .badge {
-            position: absolute;
-            top: -4px;
-            right: -4px;
-            background: #e11d48;
-            color: #fff;
-            font-size: 11px;
-            line-height: 1;
-            padding: 3px 6px;
-            border-radius: 999px;
-            border: 1px solid #111;
-        }
+        * { font-family: 'Orbitron'; }
+        .muted { opacity: .7; }
+        .click { cursor: pointer; }
+        .inquiry-data__accordion { background: #000; }
+        .chip { list-style: none; display: inline-block; margin: 6px 8px; padding: 7px 18px; border: 1px solid #fff; border-radius: 20px; }
+        .chip.selected { background: #05d9ff; color: #000; border-color: #000; }
+        .exh-select { min-width: 220px; border-radius: 10px; border: 1px solid #2b2b2b; background: #0c0c0c; color: #fff; padding: 10px 12px; outline: none; }
+        .exh-select:focus { border-color: #05d9ff; }
+        .header-right-tools { display: flex; align-items: stretch; gap: 10px; }
+        .icon-with-badge { position: relative; }
+        .icon-with-badge .badge { position: absolute; top: -4px; right: -4px; background: #e11d48; color: #fff; font-size: 11px; line-height: 1; padding: 3px 6px; border-radius: 999px; border: 1px solid #111; }
     </style>
 </head>
-
 <body>
     <div>
         <!-- Header -->
         <div class="header-wrapper">
             <div class="header-logo-wrapper" style="display: flex; justify-content: stretch;">
                 <img alt="Header Logo" loading="lazy" width="942" height="150" decoding="async"
-                    src="assets/images/Neurobot-Logo.svg" style="color: transparent;">
+                     src="assets/images/Neurobot-Logo.svg" style="color: transparent;">
             </div>
 
             <div class="input-container">
                 <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512"
-                    class="search-icon" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg">
-                    <path
-                        d="M505 442.7L405.3 343c-4.5-4.5-10.6-7-17-7H372c27.6-35.3 44-79.7 44-128C416 93.1 322.9 0 208 0S0 93.1 0 208s93.1 208 208 208c48.3 0 92.7-16.4 128-44v16.3c0 6.4 2.5 12.5 7 17l99.7 99.7c9.4 9.4 24.6 9.4 33.9 0l28.3-28.3c9.4-9.4 9.4-24.6.1-34zM208 336c-70.7 0-128-57.2-128-128 0-70.7 57.2-128 128-128 70.7 0 128 57.2 128 128 0 70.7-57.2 128-128 128z">
-                    </path>
+                     class="search-icon" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M505 442.7L405.3 343c-4.5-4.5-10.6-7-17-7H372c27.6-35.3 44-79.7 44-128C416 93.1 322.9 0 208 0S0 93.1 0 208s93.1 208 208 208c48.3 0 92.7-16.4 128-44v16.3c0 6.4 2.5 12.5 7 17l99.7 99.7c9.4 9.4 24.6 9.4 33.9 0l28.3-28.3c9.4-9.4 9.4-24.6.1-34zM208 336c-70.7 0-128-57.2-128-128 0-70.7 57.2-128 128-128 70.7 0 128 57.2 128 128 0 70.7-57.2 128-128 128z"></path>
                 </svg>
                 <input id="searchInput" class="input-search" placeholder="Search..." type="text" value="">
             </div>
 
             <div class="header-right-tools">
-                <!-- Exhibition filter (Event ID) -->
-                <select id="exhSelect" class="exh-select" title="Filter by Exhibition (Event ID)">
-                    <option value="">All Exhibitions</option>
+                <!-- Exhibition filter (Event ID) — REQUIRED -->
+                <select id="exhSelect" class="exh-select" title="Select Exhibition (Event ID)" required>
                     <?php foreach (array_keys($chip_exhibitions) as $ev): ?>
                         <option value="<?= h($ev) ?>" <?= $selected_exh === $ev ? 'selected' : '' ?>><?= h($ev) ?></option>
                     <?php endforeach; ?>
@@ -408,12 +355,12 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 <div id="filterBtn" class="export-icon-wrapper click icon-with-badge" title="Open Filters">
                     <span id="filterBadge" class="badge" aria-hidden="true" style="display:none;"></span>
                     <img alt="Filter icon" loading="lazy" width="512" height="512" decoding="async" class="export-icon"
-                        src="assets/images/filter.png" style="color: transparent;">
+                         src="assets/images/filter.png" style="color: transparent;">
                 </div>
 
                 <div id="exportBtn" class="export-icon-wrapper click" title="Download CSV">
                     <img alt="Download icon" loading="lazy" width="512" height="512" decoding="async"
-                        class="export-icon" src="assets/images/download.svg" style="color: transparent;">
+                         class="export-icon" src="assets/images/download.svg" style="color: transparent;">
                 </div>
 
                 <div class="button-wrapper-logout">
@@ -427,8 +374,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
 
         <!-- Filters Modal -->
         <div id="filterBackdrop" class="filters-backdrop" aria-hidden="true"></div>
-        <div id="filterModal" class="filters-modal" role="dialog" aria-modal="true" aria-labelledby="filtersTitle"
-            aria-hidden="true">
+        <div id="filterModal" class="filters-modal" role="dialog" aria-modal="true" aria-labelledby="filtersTitle" aria-hidden="true">
             <div class="filters-dialog">
                 <div class="filters-header">
                     <h2 id="filtersTitle" class="filters-heading">Filters</h2>
@@ -440,14 +386,12 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                     <div class="industry-filter-wrapper">
                         <ul>
                             <?php foreach (array_keys($chip_industries) as $ind): ?>
-                                <li class="chip" data-type="industry" data-value="<?= h(strtolower($ind)) ?>"><?= h($ind) ?>
-                                </li>
+                                <li class="chip" data-type="industry" data-value="<?= h(strtolower($ind)) ?>"><?= h($ind) ?></li>
                             <?php endforeach; ?>
                         </ul>
                     </div>
 
-                    <div class="filters-title" style="margin-top:10px;border-top:1px solid #fff;padding-top:20px;">
-                        Printer</div>
+                    <div class="filters-title" style="margin-top:10px;border-top:1px solid #fff;padding-top:20px;">Printer</div>
                     <ul class="application-filter-wrapper">
                         <?php foreach (array_keys($chip_printers) as $n): ?>
                             <li class="chip" data-type="printer" data-value="<?= h(strtolower($n)) ?>"><?= h($n) ?></li>
@@ -492,9 +436,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 </thead>
                 <tbody>
                     <?php if (empty($items)): ?>
-                        <tr>
-                            <td colspan="7" class="muted" style="padding:16px;">No entries found.</td>
-                        </tr>
+                        <tr><td colspan="7" class="muted" style="padding:16px;">No entries found.</td></tr>
                     <?php else: ?>
                         <?php foreach ($items as $r):
                             $name = $r['name'] ?? '—';
@@ -504,100 +446,75 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                             $indsArr = $r['industries'] ?? [];
                             $inds = industries_to_string($indsArr);
                             $apps = $r['applications'] ?? [];
-                            if (!is_array($apps))
-                                $apps = (array) $apps;
+                            if (!is_array($apps)) $apps = (array) $apps;
                             $badges = badges_from_applications($apps);
                             $selfie = selfie_src($r['selfie_path'] ?? '');
                             $notes = $r['special_mention'] ?? '—';
                             $date = $r['created_at'] ?? ($r['submitted_at'] ?? '');
-                            if ($date) {
-                                $ts = strtotime($date);
-                                if ($ts)
-                                    $date = date('d M Y - h:i A', $ts);
-                            }
+                            if ($date) { $ts = strtotime($date); if ($ts) $date = date('d M Y - h:i A', $ts); }
                             $event_id = trim((string) ($r['event_id'] ?? ''));
 
-                            // Build searchable text + data attributes
                             $categories_text = implode(' ', array_map(fn($b) => strtolower($b[0] ?? ''), $badges));
                             $apps_text = strtolower(implode(' | ', $apps));
                             $inds_text = strtolower(implode(' | ', (array) $indsArr));
                             $search_text = strtolower(trim($name . ' ' . $company . ' ' . $phone . ' ' . $desig . ' ' . $inds . ' ' . $categories_text . ' ' . $event_id));
-                            ?>
-                            <!-- Row -->
-                            <tr class="inquiry-data__row click" data-role="toggle" data-text="<?= h($search_text) ?>"
-                                data-industries="<?= h($inds_text) ?>" data-apps="<?= h($apps_text) ?>"
-                                data-event="<?= h($event_id) ?>">
-                                <td><img alt="User Selfie" loading="lazy" width="201" height="201" decoding="async"
-                                        class="inquiry-data__selfie" src="<?= h($selfie) ?>" style="color: transparent;"></td>
-                                <td><?= h($name) ?></td>
-                                <td><?= h($company) ?></td>
-                                <td class="width240"><?= h($phone) ?></td>
-                                <td><?= h($desig) ?></td>
-                                <td class="width300"><?= h($inds) ?></td>
-                                <td>
-                                    <?php if (empty($badges)): ?>—<?php else: ?>
-                                        <?php foreach ($badges as [$label, $cls]): ?>
-                                            <span class="category <?= h($cls) ?>"><?= h($label) ?></span>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
-                                </td>
-                            </tr>
+                        ?>
+                        <tr class="inquiry-data__row click" data-role="toggle" data-text="<?= h($search_text) ?>"
+                            data-industries="<?= h($inds_text) ?>" data-apps="<?= h($apps_text) ?>"
+                            data-event="<?= h($event_id) ?>">
+                            <td><img alt="User Selfie" loading="lazy" width="201" height="201" decoding="async"
+                                     class="inquiry-data__selfie" src="<?= h($selfie) ?>" style="color: transparent;"></td>
+                            <td><?= h($name) ?></td>
+                            <td><?= h($company) ?></td>
+                            <td class="width240"><?= h($phone) ?></td>
+                            <td><?= h($desig) ?></td>
+                            <td class="width300"><?= h($inds) ?></td>
+                            <td>
+                                <?php if (empty($badges)): ?>—<?php else: ?>
+                                    <?php foreach ($badges as [$label, $cls]): ?>
+                                        <span class="category <?= h($cls) ?>"><?= h($label) ?></span>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
 
-                            <!-- Expanded block -->
-                            <tr class="inquiry-data__accordion">
-                                <td colspan="7">
-                                    <div class="inquiry-data__accordion-content">
-                                        <div class="wrapper-left-expand">
-                                            <div><img alt="User Selfie" class="inquiry-data__selfie-big"
-                                                    src="<?= h($selfie) ?>"></div>
-                                            <p class="profile-info"><?= h($name) ?></p>
-                                            <p class="profile-info"><?= h($company) ?></p>
-                                            <p class="profile-info"><?= h($desig) ?></p>
-                                        </div>
-                                        <div class="wrapper-right-expand" style="display:flex;flex-direction:column;gap:6px;">
-                                            <p><b class="label-left-expand">Contact
-                                                    Number:</b>&nbsp;&nbsp;&nbsp;<?= h($phone) ?></p>
-                                            <p><b class="label-left-expand">Industry:</b>&nbsp;&nbsp;&nbsp;<?= h($inds) ?></p>
-                                            <p><b
-                                                    class="label-left-expand">Applications:</b>&nbsp;&nbsp;&nbsp;<?= h(industries_to_string($apps)) ?>
-                                            </p>
-                                            <p><b class="label-left-expand">Special
-                                                    Mention:</b>&nbsp;&nbsp;&nbsp;<?= h($notes) ?></p>
-                                            <p><b
-                                                    class="label-left-expand">Submitted:</b>&nbsp;&nbsp;&nbsp;<?= h($r['submitted_at'] ?? '—') ?>
-                                            </p>
-                                            <p><b class="label-left-expand">Created:</b>&nbsp;&nbsp;&nbsp;<?= h($date ?: '—') ?>
-                                            </p>
-                                            <p><b class="label-left-expand">Event
-                                                    ID:</b>&nbsp;&nbsp;&nbsp;<?= h($event_id ?: '—') ?></p>
-                                            <p><b
-                                                    class="label-left-expand">Email:</b>&nbsp;&nbsp;&nbsp;<?= h($r['email'] ?? '—') ?>
-                                            </p>
-                                            <p><b
-                                                    class="label-left-expand">Source:</b>&nbsp;&nbsp;&nbsp;<?= h($r['source'] ?? '—') ?>
-                                            </p>
-                                        </div>
+                        <tr class="inquiry-data__accordion">
+                            <td colspan="7">
+                                <div class="inquiry-data__accordion-content">
+                                    <div class="wrapper-left-expand">
+                                        <div><img alt="User Selfie" class="inquiry-data__selfie-big" src="<?= h($selfie) ?>"></div>
+                                        <p class="profile-info"><?= h($name) ?></p>
+                                        <p class="profile-info"><?= h($company) ?></p>
+                                        <p class="profile-info"><?= h($desig) ?></p>
                                     </div>
-                                </td>
-                            </tr>
+                                    <div class="wrapper-right-expand" style="display:flex;flex-direction:column;gap:6px;">
+                                        <p><b class="label-left-expand">Contact Number:</b>&nbsp;&nbsp;&nbsp;<?= h($phone) ?></p>
+                                        <p><b class="label-left-expand">Industry:</b>&nbsp;&nbsp;&nbsp;<?= h($inds) ?></p>
+                                        <p><b class="label-left-expand">Applications:</b>&nbsp;&nbsp;&nbsp;<?= h(industries_to_string($apps)) ?></p>
+                                        <p><b class="label-left-expand">Special Mention:</b>&nbsp;&nbsp;&nbsp;<?= h($notes) ?></p>
+                                        <p><b class="label-left-expand">Submitted:</b>&nbsp;&nbsp;&nbsp;<?= h($r['submitted_at'] ?? '—') ?></p>
+                                        <p><b class="label-left-expand">Created:</b>&nbsp;&nbsp;&nbsp;<?= h($date ?: '—') ?></p>
+                                        <p><b class="label-left-expand">Event ID:</b>&nbsp;&nbsp;&nbsp;<?= h($event_id ?: '—') ?></p>
+                                        <p><b class="label-left-expand">Email:</b>&nbsp;&nbsp;&nbsp;<?= h($r['email'] ?? '—') ?></p>
+                                        <p><b class="label-left-expand">Source:</b>&nbsp;&nbsp;&nbsp;<?= h($r['source'] ?? '—') ?></p>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </tbody>
             </table>
-
-            <!-- No pager (intentionally removed) -->
         </div>
     </div>
 
     <script>
-        // ----- Accordion (inner content max-height) -----
+        // ----- Accordion -----
         document.addEventListener('click', function (e) {
             const row = e.target.closest('tr[data-role="toggle"]');
             if (!row) return;
-
             const acc = row.nextElementSibling;
             if (!acc || !acc.classList.contains('inquiry-data__accordion')) return;
-
             const content = acc.querySelector('.inquiry-data__accordion-content');
             if (!content) return;
 
@@ -623,10 +540,10 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 .forEach(c => { c.style.maxHeight = '0px'; });
         });
 
-        // ----- Search + Union Filters + Exhibition filter -----
+        // ----- Search + Union Filters + REQUIRED Exhibition filter -----
         const searchInput = document.getElementById('searchInput');
         const exhSelect = document.getElementById('exhSelect');
-        const selectedTokens = new Set(); // stores lowercased values of selected chips across ALL groups
+        const selectedTokens = new Set();
 
         function filterRows() {
             const q = (searchInput.value || '').toLowerCase().trim();
@@ -634,15 +551,15 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             const rows = document.querySelectorAll('tr.inquiry-data__row');
 
             rows.forEach(r => {
-                const text = r.dataset.text || '';     // name, company, contact, designation, industry, category, event
+                const text = r.dataset.text || '';
                 const inds = r.dataset.industries || '';
                 const apps = r.dataset.apps || '';
                 const ev = r.dataset.event || '';
 
                 const textMatch = q === '' ? true : text.includes(q);
 
-                // Exhibition filter (exact match on event_id)
-                const eventMatch = eventFilter === '' ? true : (ev === eventFilter);
+                // Exhibition filter is REQUIRED (no "All")
+                const eventMatch = ev === eventFilter;
 
                 // Union chip filtering
                 let chipsMatch = true;
@@ -656,7 +573,6 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 const show = textMatch && eventMatch && chipsMatch;
                 r.style.display = show ? '' : 'none';
 
-                // also hide matched accordion row
                 const acc = r.nextElementSibling;
                 if (acc && acc.classList.contains('inquiry-data__accordion')) {
                     if (!show && acc.classList.contains('expanded')) {
@@ -668,10 +584,9 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 }
             });
 
-            // Keep event_id in URL (so export keeps it)
+            // Keep required event_id in URL
             const url = new URL(window.location.href);
             if (eventFilter) url.searchParams.set('event_id', eventFilter);
-            else url.searchParams.delete('event_id');
             window.history.replaceState({}, '', url);
         }
 
@@ -701,9 +616,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         filterBtn.addEventListener('click', openFilters);
         filterClose.addEventListener('click', closeFilters);
         filterBackdrop.addEventListener('click', closeFilters);
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') closeFilters();
-        });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeFilters(); });
 
         // ----- Chip selection (inside modal) -----
         function updateChipsUI(el) {
@@ -714,14 +627,10 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             else selectedTokens.delete(val);
         }
 
-        // Attach chip handlers
         document.querySelectorAll('#filterPanel .chip').forEach(chip => {
-            chip.addEventListener('click', () => {
-                updateChipsUI(chip);
-            });
+            chip.addEventListener('click', () => { updateChipsUI(chip); });
         });
 
-        // Badge updater (APPLIED count)
         function updateBadge() {
             const n = selectedTokens.size;
             if (!filterBadge) return;
@@ -736,36 +645,29 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             }
         }
 
-        // Apply & Clear buttons
-        filtersApply.addEventListener('click', () => {
-            filterRows();     // actually filter the table
-            updateBadge();    // show how many filters are APPLIED
-            closeFilters();
-        });
+        filtersApply.addEventListener('click', () => { filterRows(); updateBadge(); closeFilters(); });
         filtersClear.addEventListener('click', () => {
             selectedTokens.clear();
             document.querySelectorAll('#filterPanel .chip.selected').forEach(c => c.classList.remove('selected'));
             filterRows();
-            updateBadge();    // clears badge to 0/hidden
+            updateBadge();
         });
 
-        // ----- Export CSV (all) -----
+        // ----- Export CSV (selected exhibition only) -----
         const exportBtn = document.getElementById('exportBtn');
         if (exportBtn) {
             exportBtn.addEventListener('click', function () {
                 const url = new URL(window.location.href);
                 url.searchParams.set('export', 'csv');
-                // include event filter if selected
                 const ev = (exhSelect && exhSelect.value) ? exhSelect.value.trim() : '';
                 if (ev) url.searchParams.set('event_id', ev);
                 window.location.href = url.toString();
             });
         }
 
-        // Initial badge state + initial filter application (if event_id present)
+        // Initial badge + initial filtering
         updateBadge();
         filterRows();
     </script>
 </body>
-
 </html>
