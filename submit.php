@@ -8,6 +8,9 @@ error_reporting(E_ALL);
 
 // ---------- Basic CORS (relax during dev; tighten for prod) ----------
 require_once __DIR__ . '/api/config.php';
+// If not in debug, avoid HTML error output in JSON responses
+if (!APP_DEBUG) { ini_set('display_errors', '0'); }
+
 // header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Origin: ' . CORS_ALLOW_ORIGIN);
 header('Vary: Origin');
@@ -61,7 +64,6 @@ function ip_to_bin(?string $ip): ?string
     $b = @inet_pton((string) $ip);
     return $b === false ? null : $b;
 }
-
 
 // ---------- Session & CSRF ----------
 session_start();
@@ -197,38 +199,41 @@ file_put_contents($dataFile, json_encode($record, JSON_UNESCAPED_UNICODE | JSON_
 // ---------- Insert into MySQL ----------
 require_once __DIR__ . '/api/db.php'; // adjust path if db.php elsewhere
 
-// --- replace the INSERT and bindings in submit.php with:
-$stmt = $pdo->prepare("
-  INSERT INTO submissions (
-    submission_id, event_id, source, submitted_at, name, company_name, contact_number,
-    email, designation, designation_other, industries, industry_other, applications,
-    special_mention, selfie_path, ip, ua
-  ) VALUES (
-    :submission_id, :event_id, :source, :submitted_at, :name, :company_name, :contact_number,
-    :email, :designation, :designation_other, :industries, :industry_other, :applications,
-    :special_mention, :selfie_path, :ip, :ua
-  )
-");
+try {
+    $stmt = $pdo->prepare("
+      INSERT INTO submissions (
+        submission_id, event_id, source, submitted_at, name, company_name, contact_number,
+        email, designation, designation_other, industries, industry_other, applications,
+        special_mention, selfie_path, ip, ua
+      ) VALUES (
+        :submission_id, :event_id, :source, :submitted_at, :name, :company_name, :contact_number,
+        :email, :designation, :designation_other, :industries, :industry_other, :applications,
+        :special_mention, :selfie_path, :ip, :ua
+      )
+    ");
 
-$stmt->execute([
-    ':submission_id' => $id,                      // <-- was ':id'
-    ':event_id' => $eventId,
-    ':source' => $record['meta']['source'],
-    ':submitted_at' => date('Y-m-d H:i:s'),
-    ':name' => $v['name'],
-    ':company_name' => $v['company_name'],
-    ':contact_number' => $v['contact_number'],
-    ':email' => $v['email'],
-    ':designation' => $v['designation'],
-    ':designation_other' => $v['designation_other'],
-    ':industries' => json_encode($industries, JSON_UNESCAPED_UNICODE),
-    ':industry_other' => $v['industry_other'] ?? '',
-    ':applications' => json_encode($applications, JSON_UNESCAPED_UNICODE),
-    ':special_mention' => $v['special_mention'],
-    ':selfie_path' => 'storage/selfies/' . basename($selfiePath),
-    ':ip' => ip_to_bin($_SERVER['REMOTE_ADDR'] ?? null),
-    ':ua' => $_SERVER['HTTP_USER_AGENT'] ?? '',
-]);
+    $stmt->execute([
+        ':submission_id' => $id,
+        ':event_id' => $eventId,
+        ':source' => $record['meta']['source'],
+        ':submitted_at' => date('Y-m-d H:i:s'),
+        ':name' => $v['name'],
+        ':company_name' => $v['company_name'],
+        ':contact_number' => $v['contact_number'],
+        ':email' => $v['email'],
+        ':designation' => $v['designation'],
+        ':designation_other' => $v['designation_other'],
+        ':industries' => json_encode($industries, JSON_UNESCAPED_UNICODE),
+        ':industry_other' => $v['industry_other'] ?? '',
+        ':applications' => json_encode($applications, JSON_UNESCAPED_UNICODE),
+        ':special_mention' => $v['special_mention'],
+        ':selfie_path' => 'storage/selfies/' . basename($selfiePath),
+        ':ip' => ip_to_bin($_SERVER['REMOTE_ADDR'] ?? null),
+        ':ua' => $_SERVER['HTTP_USER_AGENT'] ?? '',
+    ]);
+} catch (Throwable $e) {
+    json_response(500, ['ok' => false, 'error' => 'DB error: ' . $e->getMessage()]);
+}
 
 // ---------- Emails ----------
 require_once __DIR__ . '/mail.php';
