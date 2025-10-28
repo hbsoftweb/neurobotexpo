@@ -102,11 +102,11 @@ $payload = [
         'industries' => $body['industries'] ?? ($body['industry'] ?? []),
         'industry_other' => trim($body['industry_other'] ?? ''),
         'applications' => $body['applications'] ?? ($body['application'] ?? []),
-        'special_mention' => trim($body['special_mention'] ?? ''),
+        'special_mention' => trim($body['special_mention'] ?? ''), // optional
     ],
     'selfie' => $body['selfie'] ?? [
         'mime' => 'image/png',
-        'data_url' => $body['selfie_data'] ?? '',
+        'data_url' => $body['selfie_data'] ?? '', // optional
     ],
     'csrf_token' => $body['csrf_token'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? ''),
 ];
@@ -119,7 +119,7 @@ $v = $payload['visitor'];
 $v['name'] = trim((string) $v['name']);
 $v['company_name'] = trim((string) $v['company_name']);
 
-/* === CHANGED: allow + and - while enforcing 7–15 digits total === */
+/* === Phone: allow + and - while enforcing 7–15 digits total === */
 $rawPhone = trim((string)$v['contact_number']);
 
 // Only allow: optional leading +, then digits and hyphens
@@ -136,13 +136,13 @@ if ($rawPhone === '' || !preg_match('/^[+]?[\d-]+$/', $rawPhone)) {
 $rawPhone = preg_replace('/-+/', '-', $rawPhone);     // collapse multiple hyphens
 $rawPhone = preg_replace('/^-+|-+$/', '', $rawPhone); // trim leading/trailing hyphens
 $v['contact_number'] = $rawPhone;
-/* === END CHANGED === */
+/* === END phone === */
 
 $v['email'] = trim((string) $v['email']);
 $v['designation'] = trim((string) $v['designation']);
 $v['designation_other'] = trim((string) ($v['designation_other'] ?? ''));
 $v['industry_other'] = trim((string) ($v['industry_other'] ?? ''));
-$v['special_mention'] = trim((string) $v['special_mention']);
+$v['special_mention'] = trim((string) $v['special_mention']); // stays optional
 
 $industries = is_array($v['industries']) ? $v['industries'] : [];
 $applications = is_array($v['applications']) ? $v['applications'] : [];
@@ -163,34 +163,49 @@ if (in_array('Other', $industries, true) && ($v['industry_other'] ?? '') === '')
     $errors['industry_other'] = 'Please specify other industry.';
 if (count($applications) < 1)
     $errors['applications'] = 'Select at least one application.';
-$selfieDataUrl = $payload['selfie']['data_url'] ?? '';
-if ($selfieDataUrl === '')
-    $errors['selfie'] = 'Selfie is required.';
+
+/* === CHANGED: Selfie is OPTIONAL now — remove hard requirement === */
+$selfieDataUrl = (string) ($payload['selfie']['data_url'] ?? '');
+// DO NOT add $errors['selfie'] if empty. Optional.
+/* === END CHANGED === */
 
 if (!empty($errors))
     json_response(422, ['ok' => false, 'errors' => $errors]);
 
-// ---------- Save selfie ----------
+// ---------- IDs & paths ----------
 $storageDir = __DIR__ . '/storage';
-$imagesDir = $storageDir . '/selfies';
-ensure_dir($imagesDir);
+$imagesDir  = $storageDir . '/selfies';
+$eventId    = preg_replace('/[^A-Za-z0-9_-]+/', '', (string) ($payload['meta']['event_id'] ?? 'EXPO'));
+$uid        = bin2hex(random_bytes(3));
+$stamp      = date('Ymd-His');
+$id         = sprintf('%s-%s-%s', $eventId ?: 'EXPO', $stamp, $uid);
 
-$eventId = preg_replace('/[^A-Za-z0-9_-]+/', '', (string) ($payload['meta']['event_id'] ?? 'EXPO'));
-$uid = bin2hex(random_bytes(3));
-$stamp = date('Ymd-His');
-$id = sprintf('%s-%s-%s', $eventId ?: 'EXPO', $stamp, $uid);
+// ---------- Save selfie (ONLY if provided) ----------
+/* === CHANGED: Conditional selfie save === */
+$selfiePathRelative = null;
+$pngBytesLen = null;
 
-try {
-    $pngBytes = data_url_to_png($selfieDataUrl);
-} catch (Throwable $e) {
-    json_response(400, ['ok' => false, 'error' => 'Invalid selfie image: ' . $e->getMessage()]);
+if ($selfieDataUrl !== '') {
+    ensure_dir($imagesDir);
+
+    try {
+        $pngBytes = data_url_to_png($selfieDataUrl);
+    } catch (Throwable $e) {
+        json_response(400, ['ok' => false, 'error' => 'Invalid selfie image: ' . $e->getMessage()]);
+    }
+
+    $selfiePath = $imagesDir . '/' . $id . '.png';
+    if (@file_put_contents($selfiePath, $pngBytes) === false) {
+        json_response(500, ['ok' => false, 'error' => 'Failed to save selfie image.']);
+    }
+
+    $selfiePathRelative = 'storage/selfies/' . basename($selfiePath);
+    $pngBytesLen = strlen($pngBytes);
 }
-
-$selfiePath = $imagesDir . '/' . $id . '.png';
-if (@file_put_contents($selfiePath, $pngBytes) === false)
-    json_response(500, ['ok' => false, 'error' => 'Failed to save selfie image.']);
+/* === END CHANGED === */
 
 // ---------- Save JSON file ----------
+ensure_dir($storageDir);
 $dataFile = $storageDir . '/submissions.jsonl';
 $record = [
     'id' => $id,
@@ -204,11 +219,12 @@ $record = [
     ],
     'visitor' => $v,
     'assets' => [
-        'selfie' => [
-            'path' => 'storage/selfies/' . basename($selfiePath),
-            'mime' => 'image/png',
-            'bytes' => strlen($pngBytes),
-        ]
+        // === CHANGED: selfie entry is null if not provided
+        'selfie' => $selfiePathRelative ? [
+            'path'  => $selfiePathRelative,
+            'mime'  => 'image/png',
+            'bytes' => $pngBytesLen,
+        ] : null,
     ]
 ];
 file_put_contents($dataFile, json_encode($record, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . PHP_EOL, FILE_APPEND | LOCK_EX);
@@ -230,23 +246,23 @@ try {
     ");
 
     $stmt->execute([
-        ':submission_id' => $id,
-        ':event_id' => $eventId,
-        ':source' => $record['meta']['source'],
-        ':submitted_at' => date('Y-m-d H:i:s'),
-        ':name' => $v['name'],
-        ':company_name' => $v['company_name'],
-        ':contact_number' => $v['contact_number'],
-        ':email' => $v['email'],
-        ':designation' => $v['designation'],
-        ':designation_other' => $v['designation_other'],
-        ':industries' => json_encode($industries, JSON_UNESCAPED_UNICODE),
-        ':industry_other' => $v['industry_other'] ?? '',
-        ':applications' => json_encode($applications, JSON_UNESCAPED_UNICODE),
-        ':special_mention' => $v['special_mention'],
-        ':selfie_path' => 'storage/selfies/' . basename($selfiePath),
-        ':ip' => ip_to_bin($_SERVER['REMOTE_ADDR'] ?? null),
-        ':ua' => $_SERVER['HTTP_USER_AGENT'] ?? '',
+        ':submission_id'      => $id,
+        ':event_id'           => $eventId,
+        ':source'             => $record['meta']['source'],
+        ':submitted_at'       => date('Y-m-d H:i:s'),
+        ':name'               => $v['name'],
+        ':company_name'       => $v['company_name'],
+        ':contact_number'     => $v['contact_number'],
+        ':email'              => $v['email'],
+        ':designation'        => $v['designation'],
+        ':designation_other'  => $v['designation_other'],
+        ':industries'         => json_encode($industries, JSON_UNESCAPED_UNICODE),
+        ':industry_other'     => $v['industry_other'] ?? '',
+        ':applications'       => json_encode($applications, JSON_UNESCAPED_UNICODE),
+        ':special_mention'    => $v['special_mention'],                 // optional, may be ''
+        ':selfie_path'        => $selfiePathRelative,                   // NULL if not provided
+        ':ip'                 => ip_to_bin($_SERVER['REMOTE_ADDR'] ?? null),
+        ':ua'                 => $_SERVER['HTTP_USER_AGENT'] ?? '',
     ]);
 } catch (Throwable $e) {
     json_response(500, ['ok' => false, 'error' => 'DB error: ' . $e->getMessage()]);
@@ -256,6 +272,7 @@ try {
 require_once __DIR__ . '/mail.php';
 try {
     // Reuse the $record you wrote to JSONL (it already contains everything)
+    // sendSubmissionEmails() should handle selfie being null.
     sendSubmissionEmails($record);
 } catch (Throwable $e) {
     error_log('sendSubmissionEmails failed: ' . $e->getMessage());
@@ -266,6 +283,6 @@ json_response(200, [
     'ok' => true,
     'id' => $id,
     'message' => 'Submission received.',
-    'selfie_path' => 'storage/selfies/' . basename($selfiePath),
+    'selfie_path' => $selfiePathRelative,   // may be null
     'received_at' => $record['received_at'],
 ]);

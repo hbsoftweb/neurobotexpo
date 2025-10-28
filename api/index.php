@@ -142,6 +142,7 @@ if ($method === 'GET' && preg_match('#^/exhibitions/([A-Za-z0-9\-_]+)$#', $rel, 
 // =====================================================
 
 // POST /api/submissions  → create submission (public)
+// POST /api/submissions  → create submission (public)
 if ($method === 'POST' && $rel === '/submissions') {
   $in = read_json();
   $m = $in['meta'] ?? [];
@@ -158,7 +159,7 @@ if ($method === 'POST' && $rel === '/submissions') {
   $inds  = $v['industries'] ?? [];
   $ind_o = trim((string)($v['industry_other'] ?? ''));
   $apps  = $v['applications'] ?? [];
-  $spec  = trim((string)($v['special_mention'] ?? ''));
+  $spec  = trim((string)($v['special_mention'] ?? '')); // optional
 
   $event  = trim((string)(($m['event_id'] ?? '') ?: ''));
   $source = trim((string)($m['source'] ?? 'exhibition-form'));
@@ -178,26 +179,31 @@ if ($method === 'POST' && $rel === '/submissions') {
                                               $err['industry_other'] = 'Please specify other industry';
   if (!is_array($apps) || count($apps) < 1)   $err['applications'] = 'Select at least one application';
 
-  $dataUrl = (string)($s['data_url'] ?? '');
-  if ($dataUrl === '')                        $err['selfie'] = 'Selfie is required';
+  // === CHANGED: Selfie is OPTIONAL now
+  $dataUrl = (string)($s['data_url'] ?? '');  // if '', we just skip saving
+  // no $err['selfie'] when empty
 
   if (!empty($err)) json_response(422, ['ok' => false, 'errors' => $err]);
 
-  ensure_dir(SELFIES_DIR);
+  // Build stable slug/id
   $stamp = date('Ymd-His');
   $rand  = bin2hex(random_bytes(3));
   $slug  = ($event !== '' ? preg_replace('/[^A-Za-z0-9_-]+/', '', $event) : 'EXPO') . "-$stamp-$rand";
 
-  try {
-    $bytes = data_url_png_bytes($dataUrl);
-  } catch (Throwable $e) {
-    json_response(400, ['ok' => false, 'error' => 'Invalid selfie image: ' . $e->getMessage()]);
-  }
-
-  $relPath = 'storage/selfies/' . $slug . '.png';
-  $absPath = SELFIES_DIR . '/' . $slug . '.png';
-  if (@file_put_contents($absPath, $bytes) === false) {
-    json_response(500, ['ok' => false, 'error' => 'Failed to save selfie image']);
+  // Save selfie only if provided
+  $relPath = null;
+  if ($dataUrl !== '') {
+    ensure_dir(SELFIES_DIR);
+    try {
+      $bytes = data_url_png_bytes($dataUrl);
+    } catch (Throwable $e) {
+      json_response(400, ['ok' => false, 'error' => 'Invalid selfie image: ' . $e->getMessage()]);
+    }
+    $relPath = 'storage/selfies/' . $slug . '.png';
+    $absPath = SELFIES_DIR . '/' . $slug . '.png';
+    if (@file_put_contents($absPath, $bytes) === false) {
+      json_response(500, ['ok' => false, 'error' => 'Failed to save selfie image']);
+    }
   }
 
   $pdo = db();
@@ -221,8 +227,8 @@ if ($method === 'POST' && $rel === '/submissions') {
     ':inds'         => json_encode(array_values(array_unique(array_map('strval', $inds))), JSON_UNESCAPED_UNICODE),
     ':ind_o'        => $ind_o ?: null,
     ':apps'         => json_encode(array_values(array_unique(array_map('strval', $apps))), JSON_UNESCAPED_UNICODE),
-    ':spec'         => $spec,
-    ':selfie'       => $relPath,
+    ':spec'         => $spec,            // stays optional
+    ':selfie'       => $relPath,         // NULL when selfie not provided
     ':ip'           => ip_to_bin($_SERVER['REMOTE_ADDR'] ?? null),
     ':ua'           => $_SERVER['HTTP_USER_AGENT'] ?? null,
   ]);

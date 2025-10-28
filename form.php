@@ -112,7 +112,7 @@ if (empty($_SESSION['csrf_token'])) {
                     <div class="form-step" data-step>
                         <label class="label-input" for="contact_number">Contact Number*</label>
                         <input class="stepper-input" id="contact_number" name="contact_number" type="tel"
-                            inputmode="numeric" placeholder="Enter Your Phone number" pattern="^[+]?[\d-]{7,20}$"
+                            inputmode="numeric" placeholder="Enter Your Phone number" pattern="^[+]?[\d-]{7,25}$"
                             title="Enter a valid phone number (digits, optional + and -). 7–15 digits in total."
                             aria-describedby="phoneHelp" required>
 
@@ -333,15 +333,15 @@ if (empty($_SESSION['csrf_token'])) {
 
                     <!-- STEP 8 -->
                     <div class="form-step" data-step>
-                        <label class="label-input" for="special_mention">Special Mention*</label>
+                        <label class="label-input" for="special_mention">Special Mention</label>
                         <input class="stepper-input" id="special_mention" name="special_mention" type="text"
-                            placeholder="Enter Special Mention" required>
-                        <div class="invalid-hint">Please enter a special mention.</div>
+                            placeholder="Enter Special Mention">
+                        <!-- <div class="invalid-hint">Please enter a special mention.</div> -->
                     </div>
 
                     <!-- STEP 9: Selfie -->
                     <div class="form-step cam-div" data-step>
-                        <label class="label-input" for="camera">Capture Your Selfie*</label>
+                        <label class="label-input" for="camera">Capture Your Selfie</label>
                         <div class="cam-holder" id="cam-holder">
                             <video id="camera" autoplay muted playsinline
                                 style="max-width:100%;border-radius:12px;"></video>
@@ -393,7 +393,7 @@ if (empty($_SESSION['csrf_token'])) {
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
     <script>
-        // ===== Exhibition loop bootstrap (tab-scoped) =====
+        // ===== Exhibition bootstrap (no banner) =====
         (function () {
             const params = new URLSearchParams(location.search);
             const queryCode = params.get('e');
@@ -403,6 +403,7 @@ if (empty($_SESSION['csrf_token'])) {
                 catch { return null; }
             }
 
+            // still accept ?e=... to set/refresh current exhibition
             if (queryCode) {
                 const cur = getCur();
                 if (!cur || cur.code !== queryCode) {
@@ -419,15 +420,7 @@ if (empty($_SESSION['csrf_token'])) {
             const eidField = document.getElementById('event_id');
             if (eidField) eidField.value = cur.code;
 
-            const banner = document.createElement('div');
-            banner.style.cssText = 'position:sticky;top:0;z-index:999;background:#0b3558;color:#fff;padding:8px 12px;font:14px system-ui;';
-            banner.innerHTML = `<strong>Exhibition:</strong> ${cur.name || cur.code}
-                <a href="index.php" style="color:#aef;margin-left:12px;text-decoration:underline;">Switch</a>`;
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', () => document.body.prepend(banner));
-            } else {
-                document.body.prepend(banner);
-            }
+            // NOTE: banner intentionally removed
         })();
 
         (function () {
@@ -532,26 +525,24 @@ if (empty($_SESSION['csrf_token'])) {
 
                 stepEl.querySelectorAll('.invalid').forEach(n => n.classList.remove('invalid'));
 
+                // Name (required)
                 if (stepEl.contains($('#name'))) {
                     const el = $('#name'); const ok = !!el.value.trim(); if (!ok) valid = false; setValidity(el, ok);
                 }
+
+                // Company (required)
                 if (stepEl.contains($('#company_name'))) {
                     const el = $('#company_name'); const ok = !!el.value.trim(); if (!ok) valid = false; setValidity(el, ok);
                 }
+
+                // Phone (required with format)
                 if (stepEl.contains($('#contact_number'))) {
                     const el = $('#contact_number');
                     const raw = el.value.trim();
-
-                    // 1) Basic format: optional leading +, digits and hyphens only
-                    const formatOk = /^[+]?[\d-]{7,20}$/.test(raw);
-
-                    // 2) Count digits only (ignore + and -) must be 7–15
+                    const formatOk = /^[+]?[\d-]{7,25}$/.test(raw);
                     const digitCount = (raw.match(/\d/g) || []).length;
                     const digitsOk = digitCount >= 7 && digitCount <= 15;
-
-                    // 3) If there is a +, it must be only at the start (already ensured by regex)
                     const ok = formatOk && digitsOk;
-
                     if (!ok) {
                         el.setCustomValidity('Enter a valid phone (digits with optional + and -). 7–15 digits in total.');
                         valid = false;
@@ -561,9 +552,12 @@ if (empty($_SESSION['csrf_token'])) {
                     setValidity(el, ok);
                 }
 
+                // Email (required)
                 if (stepEl.contains($('#email'))) {
                     const el = $('#email'); const ok = el.checkValidity(); if (!ok) valid = false; setValidity(el, ok);
                 }
+
+                // Designation (required; "Other" requires text)
                 if (stepEl.contains($('#designation-group'))) {
                     const desSel = document.querySelector('input[name="designation"]:checked');
                     if (!desSel) { valid = false; $('#designation-group').classList.add('invalid'); }
@@ -571,6 +565,8 @@ if (empty($_SESSION['csrf_token'])) {
                         const other = $('#designation_other'); if (!other.value.trim()) { valid = false; other.closest('div')?.classList.add('invalid'); }
                     }
                 }
+
+                // Industry (at least one; "Other" requires text)
                 if (stepEl.contains($('#industry-group'))) {
                     if (!hasChecked('input[name="industry[]"]')) { valid = false; $('#industry-group').classList.add('invalid'); }
                     const indOther = document.querySelector('input[name="industry[]"][value="Other"]');
@@ -578,19 +574,19 @@ if (empty($_SESSION['csrf_token'])) {
                         const other = $('#industry_other'); if (!other.value.trim()) { valid = false; other.closest('div')?.classList.add('invalid'); }
                     }
                 }
+
+                // Application (at least one)
                 if (stepEl.querySelector('#application-group-1')) {
                     if (!hasChecked('input[name="application[]"]')) { valid = false; $('#application-group-1')?.classList.add('invalid'); }
                 }
-                if (stepEl.contains($('#special_mention'))) {
-                    const el = $('#special_mention'); const ok = !!el.value.trim(); if (!ok) valid = false; setValidity(el, ok);
-                }
-                if (stepEl.contains($('#cam-holder'))) {
-                    if (!$('#selfie_data').value) { valid = false; showToast('Please capture your selfie before continuing.', 'error'); }
-                }
+
+                // NOTE: Special Mention is OPTIONAL now — no check
+                // NOTE: Selfie is OPTIONAL now — no check
 
                 if (!valid) form.reportValidity();
                 return valid;
             }
+
 
             function buildPayload() {
                 const industries = $$('#industry-group input[name="industry[]"]:checked').map(i => i.value);
@@ -716,6 +712,14 @@ if (empty($_SESSION['csrf_token'])) {
             renderStep();
             document.addEventListener('visibilitychange', () => { if (!document.hidden) ensureCameraIfSelfieStepVisible(); });
             window.addEventListener('focus', ensureCameraIfSelfieStepVisible);
+
+            // >>> Added: cleanly stop camera when leaving the page
+            window.addEventListener('beforeunload', () => {
+                if (stream) {
+                    try { stream.getTracks().forEach(t => t.stop()); } catch (e) { }
+                }
+            });
+            // <<< End added
         })();
     </script>
 </body>
