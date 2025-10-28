@@ -58,7 +58,7 @@ function appToPdfMap(): array {
     // Vision
     'Lenia Lite 4K (LINE SCAN)' => 'Lenia-Lite-4K-(LINE SCAN).pdf',
     'Z-Track (3D Profiler)'     => 'Z-Track-(3D Profiler).pdf',
-    'Flir BFS-PGE-50S4C-C'      => 'Flir-BFS-PGE-5054C-C.pdf', // filename in folder
+    'Flir BFS-PGE-50S4C-C'      => 'Flir-BFS-PGE-5054C-C.pdf',
     'Zebra VS - 40'             => 'Zebra-VS-40.pdf',
     'Zebra FS - 70'             => 'Zebra-FS-70.pdf',
     'Camera BFS-PGE-16S2M-CS'   => 'Camera-BFS-PGE-16S2M-CS.pdf',
@@ -99,38 +99,56 @@ function sendSubmissionEmails(array $record): void {
   $selfieRel = $record['assets']['selfie']['path'] ?? '';
   $selfieAbs = __DIR__ . '/' . ltrim($selfieRel, '/');
 
-  // --- Admin notification (unchanged; selfie optional)
-  $adminHtml = '
-    <h2>New Exhibition Submission</h2>
-    <p><strong>ID:</strong> '.htmlspecialchars($record['id']).'</p>
-    <p><strong>Name:</strong> '.htmlspecialchars($name).'</p>
-    <p><strong>Company:</strong> '.htmlspecialchars($v['company_name'] ?? '').'</p>
-    <p><strong>Phone:</strong> '.htmlspecialchars($v['contact_number'] ?? '').'</p>
-    <p><strong>Email:</strong> '.htmlspecialchars($email).'</p>
-    <p><strong>Designation:</strong> '.htmlspecialchars($v['designation'] ?? '').'</p>
-    <p><strong>Industries:</strong> '.htmlspecialchars($industries).'</p>
-    <p><strong>Applications:</strong> '.htmlspecialchars($applications).'</p>
-    <p><strong>Special mention:</strong><br>'.nl2br(htmlspecialchars($v['special_mention'] ?? '')).'</p>
-    <p><em>Submitted at:</em> '.htmlspecialchars($record['received_at'] ?? date('c')).'</p>
-  ';
+  // --------------- Admin notification (styled like reference) ---------------
+  $adminTitle = 'New Exhibition Submission';
+  $adminHtml = '<!doctype html>
+<html>
+<head><meta charset="UTF-8"><title>'.htmlspecialchars($adminTitle, ENT_QUOTES, 'UTF-8').'</title></head>
+<body style="margin:0;padding:0;background:#ffffff;font-family:Arial,Helvetica,sans-serif;">
+  <div style="width:100%;max-width:500px;margin:0 auto;border-top:5px solid #9D7458;padding:20px;">
+    <h2 style="margin:0 0 16px 0;font-size:22px;line-height:1.3;text-align:left;">'.htmlspecialchars($adminTitle, ENT_QUOTES, 'UTF-8').'</h2>
+
+    <p style="margin:0 0 8px 0;font-size:16px;line-height:1.6;"><strong>ID:</strong> '.htmlspecialchars($record['id']).'</p>
+    <p style="margin:0 0 8px 0;font-size:16px;line-height:1.6;"><strong>Name:</strong> '.htmlspecialchars($name).'</p>
+    <p style="margin:0 0 8px 0;font-size:16px;line-height:1.6;"><strong>Company:</strong> '.htmlspecialchars($v['company_name'] ?? '').'</p>
+    <p style="margin:0 0 8px 0;font-size:16px;line-height:1.6;"><strong>Phone:</strong> '.htmlspecialchars($v['contact_number'] ?? '').'</p>
+    <p style="margin:0 0 8px 0;font-size:16px;line-height:1.6;"><strong>Email:</strong> '.htmlspecialchars($email).'</p>
+    <p style="margin:0 0 8px 0;font-size:16px;line-height:1.6;"><strong>Designation:</strong> '.htmlspecialchars($v['designation'] ?? '').'</p>
+    <p style="margin:0 0 8px 0;font-size:16px;line-height:1.6;"><strong>Industries:</strong> '.htmlspecialchars($industries).'</p>
+    <p style="margin:0 0 8px 0;font-size:16px;line-height:1.6;"><strong>Applications:</strong> '.htmlspecialchars($applications).'</p>
+    <p style="margin:0 0 8px 0;font-size:16px;line-height:1.6;"><strong>Special mention:</strong><br>'.nl2br(htmlspecialchars($v['special_mention'] ?? '')).'</p>
+    <p style="margin:12px 0 0 0;font-size:14px;line-height:1.6;color:#555;"><em>Submitted at:</em> '.htmlspecialchars($record['received_at'] ?? date('c')).'</p>
+  </div>
+</body>
+</html>';
+
   $adminAttachments = (is_file($selfieAbs) ? [$selfieAbs] : []);
   sendMail(MAIL_ADMIN, 'Admin', 'New submission: '.$name, $adminHtml, $adminAttachments);
 
-  // --- Visitor auto-reply (attach PDFs for selected applications)
+  // --------------- Visitor auto-reply (styled like reference) ---------------
   if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    $userHtml = '
-      <p>Hi '.htmlspecialchars($name).',</p>
-      <p>Thanks for visiting our stall and submitting your details. We&rsquo;ve attached product sheets for your selected applications.</p>
-      <p><strong>Your summary</strong></p>
-      <ul>
-        <li>Company: '.htmlspecialchars($v['company_name'] ?? '').'</li>
-        <li>Phone: '.htmlspecialchars($v['contact_number'] ?? '').'</li>
-        <li>Designation: '.htmlspecialchars($v['designation'] ?? '').'</li>
-        <li>Industries: '.htmlspecialchars($industries).'</li>
-        <li>Applications: '.htmlspecialchars($applications).'</li>
-      </ul>
-      <p>Regards,<br>'.htmlspecialchars(MAIL_FROM_NAME).'</p>
-    ';
+    $userTitle = 'Thanks for Visiting Our Stall';
+    $userHtml = '<!doctype html>
+<html>
+<head><meta charset="UTF-8"><title>'.htmlspecialchars($userTitle, ENT_QUOTES, 'UTF-8').'</title></head>
+<body style="margin:0;padding:0;background:#ffffff;font-family:Arial,Helvetica,sans-serif;">
+  <div style="width:100%;max-width:500px;margin:0 auto;border-top:5px solid #9D7458;padding:20px;">
+    <h2 style="margin:0 0 16px 0;font-size:22px;line-height:1.3;text-align:left;">'.htmlspecialchars($userTitle, ENT_QUOTES, 'UTF-8').'</h2>
+
+    <p style="margin:0 0 12px 0;font-size:16px;line-height:1.6;">Hi '.htmlspecialchars($name).',</p>
+    <p style="margin:0 0 12px 0;font-size:16px;line-height:1.6;">Thanks for visiting our stall and submitting your details. We’ve attached product sheets for your selected applications.</p>
+
+    <p style="margin:16px 0 8px 0;font-size:16px;line-height:1.6;"><strong>Your summary</strong></p>
+    <p style="margin:0 0 8px 0;font-size:16px;line-height:1.6;"><strong>Company:</strong> '.htmlspecialchars($v['company_name'] ?? '').'</p>
+    <p style="margin:0 0 8px 0;font-size:16px;line-height:1.6;"><strong>Phone:</strong> '.htmlspecialchars($v['contact_number'] ?? '').'</p>
+    <p style="margin:0 0 8px 0;font-size:16px;line-height:1.6;"><strong>Designation:</strong> '.htmlspecialchars($v['designation'] ?? '').'</p>
+    <p style="margin:0 0 8px 0;font-size:16px;line-height:1.6;"><strong>Industries:</strong> '.htmlspecialchars($industries).'</p>
+    <p style="margin:0 0 8px 0;font-size:16px;line-height:1.6;"><strong>Applications:</strong> '.htmlspecialchars($applications).'</p>
+
+    <p style="margin:16px 0 0 0;font-size:16px;line-height:1.6;">Regards,<br>'.htmlspecialchars(MAIL_FROM_NAME).'</p>
+  </div>
+</body>
+</html>';
 
     $userAttachments = mapApplicationsToPdfs((array)($v['applications'] ?? []));
     sendMail($email, $name, 'Thanks — product sheets attached', $userHtml, $userAttachments);
